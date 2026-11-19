@@ -1,7 +1,7 @@
 <div align="center">
 
-<img src="docs/clima-mundo.gif" alt="ClimaPS - mapa-múndi com chuva e raios" width="100%">
-
+<img width="1000" height="420" alt="clima-mundo" src="https://github.com/user-attachments/assets/203a2de7-65f9-42d2-a722-e986300e17c1" />
+<img width="1000" height="30" alt="divider (1)" src="https://github.com/user-attachments/assets/ad9ec1c6-2ee9-44fe-880d-3e494c3f1b24" />
 <br>
 
 ![Python](https://img.shields.io/badge/PYTHON-3.10+-D3FF00?style=for-the-badge&logo=python&logoColor=0B0B0B&labelColor=0B0B0B)
