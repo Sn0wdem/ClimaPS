@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+ambiente/
+exportacoes/*
+!exportacoes/.gitkeep
+data/importados/*
+!data/importados/.gitkeep
+ANALISE_DO_ARQUIVO.md
+GUIA_DIDATICO.md
+
+

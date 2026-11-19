@@ -1,0 +1,5 @@
+streamlit>=1.42,<2.0  # Framework da interface web principal e componentes interativos
+plotly>=5.24,<7.0  # Biblioteca de gráficos interativos e mapa mundial
+requests>=2.31,<3.0  # Cliente HTTP para consultar a API pública Open-Meteo
+pandas>=2.2,<3.0  # Manipulação de tabelas, CSVs e séries temporais
+numpy>=2.0,<3.0  # Suporte numérico usado nas matrizes e cálculos do pandas
