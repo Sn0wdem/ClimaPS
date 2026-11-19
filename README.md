@@ -1,72 +1,96 @@
 <div align="center">
 
-# 🌦️ ClimaPS
-
-### Telemetria climática global ao vivo + análise de dados do INMET
-
-*Um painel escuro estilo "centro de controle" para quem curte dados, mapas e código limpo.*
+<img src="docs/banner.gif" alt="ClimaPS - Telemetria climática global" width="100%">
 
 <br>
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
-![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
-![pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
-![Open-Meteo](https://img.shields.io/badge/Open--Meteo-API_sem_chave-00B4D8?style=for-the-badge)
-![INMET](https://img.shields.io/badge/Dados-INMET-2E7D32?style=for-the-badge)
+![Python](https://img.shields.io/badge/PYTHON-3.10+-D3FF00?style=for-the-badge&logo=python&logoColor=0B0B0B&labelColor=0B0B0B)
+![Streamlit](https://img.shields.io/badge/STREAMLIT-UI-D3FF00?style=for-the-badge&logo=streamlit&logoColor=0B0B0B&labelColor=0B0B0B)
+![Plotly](https://img.shields.io/badge/PLOTLY-MAPAS-D3FF00?style=for-the-badge&logo=plotly&logoColor=0B0B0B&labelColor=0B0B0B)
+![pandas](https://img.shields.io/badge/PANDAS-DADOS-D3FF00?style=for-the-badge&logo=pandas&logoColor=0B0B0B&labelColor=0B0B0B)
+![Open-Meteo](https://img.shields.io/badge/OPEN--METEO-SEM_CHAVE-D3FF00?style=for-the-badge&labelColor=0B0B0B)
+![INMET](https://img.shields.io/badge/DADOS-INMET-D3FF00?style=for-the-badge&labelColor=0B0B0B)
 
 <br>
 
-[**🚀 Começar**](#-quick-start) · [**✨ Features**](#-features) · [**🗂️ Abas**](#️-abas-da-aplicação) · [**🧱 Arquitetura**](#-arquitetura) · [**🧪 Testes**](#-testes)
+**[🚀 QUICK START](#-quick-start)** &nbsp;·&nbsp; **[⚡ FEATURES](#-features)** &nbsp;·&nbsp; **[🗂️ ABAS](#️-abas)** &nbsp;·&nbsp; **[🧱 ARQUITETURA](#-arquitetura)** &nbsp;·&nbsp; **[🧪 TESTES](#-testes)**
+
+<br>
+
+<img src="docs/divider.gif" alt="" width="100%">
 
 </div>
 
-<!-- Dica: adicione aqui um GIF ou print do app.
-<p align="center"><img src="docs/preview.gif" width="85%" alt="Preview do ClimaPS"></p>
--->
+<br>
 
----
+## 🟡 O QUE É ISSO?
 
-## 💡 O que é?
+Um painel **escuro, rápido e sem burocracia** para ver o clima do planeta em tempo real.
 
-O **ClimaPS** abre já pronto para uso: sem CSV, sem chave de API, sem configuração. Digite uma cidade (ou coordenadas) e veja o clima do mundo em tempo real, com mapas interativos, radar animado e previsão de 7 dias.
+Abriu o app? Já está funcionando. **Sem CSV. Sem chave de API. Sem configurar nada.**
+Digite uma cidade (ou coordenadas) e pronto: mapa global, radar animado, previsão de 7 dias e duelo entre cidades.
 
-Quer ir mais fundo? Importe séries horárias do **INMET**, filtre, edite, analise correlações e exporte tudo em **CSV** ou **SQL**.
+E se você curte dados de verdade, importe séries horárias do **INMET**, filtre, edite, cruze variáveis e exporte em **CSV** ou **SQL**.
 
-> 🎓 Projeto didático: código organizado em módulos pequenos, fácil de ler e de evoluir.
+> 🎓 Projeto didático: módulos pequenos, código legível, fácil de estudar e de evoluir.
 
----
+<br>
 
-## ✨ Features
+## ⚡ FEATURES
 
-| | Recurso | Detalhe |
-|---|---|---|
-| 🌍 | **Clima ao vivo** | Qualquer cidade/país ou `Latitude` / `Longitude` via Open-Meteo |
-| 🗺️ | **Mapa global + radar** | Mapa interativo (Plotly) e radar animado (Windy.com) |
-| 📆 | **Previsão de 7 dias** | Cards diários + gráfico combinado de temperatura e chuva |
-| ⚔️ | **Duelo de cidades** | Compare duas cidades ao vivo e na curva térmica de 7 dias |
-| 📥 | **Importação de CSV** | Arquivos horários do INMET, com cópia salva em `data/importados/` |
-| 🔍 | **Filtros inteligentes** | Por período, faixa de horário e ocorrência de chuva |
-| 📊 | **Análises automáticas** | KPIs, insights, resumo mensal, matriz de correlação e qualidade da base |
-| ✏️ | **Editor em sessão** | Ajuste chuva, temperatura máxima e mínima direto na tabela |
-| ⬇️ | **Exportação** | CSV e script SQL (`CREATE TABLE` + `INSERT`), completos ou filtrados |
-| 🕒 | **Histórico de 30 dias** | Carregue os últimos 30 dias de qualquer cidade direto nas abas de análise |
+<table>
+<tr>
+<td width="50%" valign="top">
 
----
+### 🌍 AO VIVO
+- Clima de qualquer **cidade, país ou coordenada** (`Latitude` / `Longitude`)
+- **Mapa global** interativo (Plotly)
+- **Radar animado** (Windy.com)
+- Pódio de extremos e tabela comparativa
 
-## 🚀 Quick start
+</td>
+<td width="50%" valign="top">
 
-**1. Clone e entre na pasta**
+### 🔮 PREVISÃO & DUELO
+- **7 dias** em cards + gráfico de temperatura e chuva
+- **Duelo de cidades**: compare ao vivo e na curva térmica
+- Carregue os **últimos 30 dias** de qualquer cidade direto nas abas de análise
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 📊 ANÁLISE
+- Importa **CSV horário do INMET**
+- Filtros por **período, horário e chuva**
+- KPIs, insights automáticos, resumo mensal
+- **Matriz de correlação** e diagnóstico de qualidade
+
+</td>
+<td width="50%" valign="top">
+
+### 🛠️ EDITAR & EXPORTAR
+- Edite chuva, temp. máxima e mínima na sessão
+- Exporte **CSV** ou script **SQL**
+  (`CREATE TABLE` + `INSERT`)
+- Dados completos ou só os filtrados
+
+</td>
+</tr>
+</table>
+
+<br>
+
+## 🚀 QUICK START
 
 ```bash
 git clone <url-do-repositorio>
 cd climaps
 ```
 
-**2. Crie o ambiente virtual e instale as dependências**
-
 <details open>
-<summary><b>🪟 Windows (PowerShell)</b></summary>
+<summary><b>🪟 WINDOWS (PowerShell)</b></summary>
 
 ```powershell
 py -m venv .venv
@@ -78,7 +102,7 @@ pip install -r requirements.txt
 </details>
 
 <details>
-<summary><b>🐧 Linux / 🍎 macOS</b></summary>
+<summary><b>🐧 LINUX / 🍎 MACOS</b></summary>
 
 ```bash
 python3 -m venv .venv
@@ -89,51 +113,52 @@ pip install -r requirements.txt
 
 </details>
 
-**3. Rode o app**
+**Rodar:**
 
 ```bash
 python -m streamlit run app_streamlit.py --server.port 8501
 ```
 
-Abra 👉 **http://localhost:8501** e pronto.
+👉 Abra **http://localhost:8501** e pronto.
 
 > 🌐 As consultas ao vivo precisam de internet (Open-Meteo e embed do Windy.com).
 
----
+<br>
 
-## 🗂️ Abas da aplicação
+## 🗂️ ABAS
 
-| Aba | O que você encontra |
-|---|---|
-| 🌍 **LIVE MUNDO** | Clima global ao vivo, cartão de telemetria, mapa Plotly/Windy, pódio de extremos e tabela comparativa |
-| 📆 **PREVISÃO 7D** | Previsão diária em cards e gráfico combinado de temperatura e chuva |
-| ⚔️ **DUELO** | Comparação ao vivo e curva térmica de 7 dias entre duas cidades |
-| 📊 **RESUMO** | KPIs, insights automáticos, resumo mensal e qualidade da base |
-| 📈 **GRÁFICOS** | Precipitação, amplitude térmica e matriz de correlação |
-| ✏️ **EDITOR** | Tabela editável dos registros carregados na sessão |
-| 🔍 **EXPLORADOR** | Visualização tabular conforme os filtros ativos |
-| ⬇️ **EXPORTAR** | Download de CSV e SQL (e salvamento local em `exportacoes/`) |
+| | ABA | O QUE TEM LÁ |
+|:-:|---|---|
+| 🌍 | **LIVE MUNDO** | Clima global ao vivo, cartão de telemetria, mapa Plotly/Windy, pódio de extremos, tabela comparativa |
+| 📆 | **PREVISÃO 7D** | Cards diários + gráfico combinado de temperatura e chuva |
+| ⚔️ | **DUELO** | Duas cidades frente a frente, ao vivo e na curva de 7 dias |
+| 📊 | **RESUMO** | KPIs, insights automáticos, resumo mensal, qualidade da base |
+| 📈 | **GRÁFICOS** | Precipitação, amplitude térmica, matriz de correlação |
+| ✏️ | **EDITOR** | Tabela editável dos registros da sessão |
+| 🔍 | **EXPLORADOR** | Registros em tabela, conforme os filtros ativos |
+| ⬇️ | **EXPORTAR** | Download de CSV e SQL (e cópia local em `exportacoes/`) |
 
----
+<br>
 
-## 📥 Analisando dados do INMET
+## 📥 ANALISANDO DADOS DO INMET
 
-1. Abra o app e use **Importar CSV** na barra lateral.
-2. Escolha um arquivo `.csv` no padrão horário do INMET.
-3. Aplique filtros de período, horário e chuva.
-4. Explore **Resumo**, **Gráficos** e **Explorador**.
-5. Ajuste valores no **Editor**, se necessário.
-6. Exporte em **Exportar**.
+1. Abra o app e use **Importar CSV** na barra lateral
+2. Escolha um `.csv` no padrão horário do INMET
+3. Aplique filtros de período, horário e chuva
+4. Explore **Resumo**, **Gráficos** e **Explorador**
+5. Ajuste valores no **Editor**, se precisar
+6. Exporte em **Exportar**
 
-> O CSV deve ter os metadados no início e uma tabela com data, hora, precipitação e temperaturas máxima/mínima. O `data_loader.py` normaliza nomes e tipos automaticamente.
+> O CSV precisa ter os metadados no início e uma tabela com data, hora, precipitação e temperaturas máxima/mínima. O `data_loader.py` normaliza nomes e tipos sozinho.
 
 📦 Já vem com um dataset de exemplo: `data/dados_A101_H_2014.csv` (Manaus A101, 2014).
+Arquivos importados ficam em `data/importados/`.
 
----
+<br>
 
-## 🗄️ Exportação SQL
+## 🗄️ EXPORTAÇÃO SQL
 
-Gera um arquivo `.sql` com a tabela `observacoes_meteorologicas`:
+Gera um `.sql` com a tabela `observacoes_meteorologicas`:
 
 ```sql
 DROP TABLE IF EXISTS observacoes_meteorologicas;
@@ -143,9 +168,9 @@ INSERT INTO observacoes_meteorologicas (...) VALUES (...);
 
 Os arquivos exportados ficam em `exportacoes/`.
 
----
+<br>
 
-## 🧱 Arquitetura
+## 🧱 ARQUITETURA
 
 ```mermaid
 flowchart LR
@@ -158,7 +183,7 @@ flowchart LR
 ```
 
 <details>
-<summary><b>📁 Estrutura de pastas</b></summary>
+<summary><b>📁 ESTRUTURA DE PASTAS</b></summary>
 
 ```text
 .
@@ -179,6 +204,9 @@ flowchart LR
 ├── data/
 │   ├── dados_A101_H_2014.csv     # Exemplo de dataset (Manaus A101 - 2014)
 │   └── importados/               # CSVs importados pela interface
+├── docs/
+│   ├── banner.gif                # Banner animado do README
+│   └── divider.gif               # Divisor animado do README
 ├── exportacoes/                  # Arquivos CSV e SQL exportados
 ├── tests/
 │   └── test_analysis.py          # Testes automatizados (unittest)
@@ -188,29 +216,27 @@ flowchart LR
 
 </details>
 
----
+<br>
 
-## 🧪 Testes
+## 🧪 TESTES
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
----
-
-## 🛠️ Stack
-
-`Python` · `Streamlit` · `Plotly` · `pandas` · `Open-Meteo` · `Windy.com` · `unittest`
-
----
+<br>
 
 <div align="center">
 
-Feito com ☕ e dados por **Guilherme Albuquerque Nepomuceno**
+<img src="docs/divider.gif" alt="" width="100%">
 
-[LinkedIn](https://linkedin.com/in/guilhermealbuquerquenepomuceno)
+**FEITO COM ☕ E DADOS POR GUILHERME ALBUQUERQUE NEPOMUCENO**
 
-⭐ Se curtiu, deixa uma estrela no repositório!
+[![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONECTAR-D3FF00?style=for-the-badge&logo=linkedin&logoColor=0B0B0B&labelColor=0B0B0B)](https://linkedin.com/in/guilhermealbuquerquenepomuceno)
+
+⭐ Curtiu? Deixa uma estrela no repositório!
 
 </div>
+<img width="1000" height="340" alt="banner" src="https://github.com/user-attachments/assets/6d92deb0-8837-46a7-a9d1-bd9bc3ffc3ef" />
+<img width="1000" height="30" alt="divider" src="https://github.com/user-attachments/assets/17e66149-439a-4a31-a054-66d8a7af8164" />
 
