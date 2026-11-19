@@ -5,6 +5,7 @@ import pandas as pd  # Manipulação de séries temporais e DataFrames
 import requests  # Biblioteca para fazer requisições HTTP à API Open-Meteo
 
 from climaps.core.data_loader import StationDataset  # Reaproveita a estrutura StationDataset usada pelo resto do app
+from climaps.ui_styles import format_datetime_friendly  # Formata datas/horas no padrão brasileiro amigável
 
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"  # Endpoint público de busca de cidades por nome (Open-Meteo)
@@ -69,7 +70,7 @@ def _parse_point_payload(payload: dict[str, object], label: str, lat: float, lon
         "latitude": float(payload.get("latitude", lat)),  # Latitude retornada pela grade da API (ou a solicitada)
         "longitude": float(payload.get("longitude", lon)),  # Longitude retornada pela grade da API (ou a solicitada)
         "fuso": payload.get("timezone", "UTC"),  # Fuso horário local detectado pela API
-        "horario": cur.get("time", ""),  # Data/hora da medição atual
+        "horario": format_datetime_friendly(cur.get("time", "")),  # Data/hora da medição atual formatada
         "temperatura_c": cur.get("temperature_2m"),  # Temperatura a 2 metros de altura (°C)
         "sensacao_c": cur.get("apparent_temperature"),  # Sensação térmica (°C)
         "umidade_pct": cur.get("relative_humidity_2m"),  # Umidade relativa do ar (%)
@@ -152,7 +153,7 @@ def fetch_live_weather(  # Busca clima atual, previsão diária e série horári
 
     raw_current = payload.get("current", {})  # Bloco bruto do clima atual
     current = {  # Monta dicionário resumido do momento atual
-        "horario": raw_current.get("time", ""),  # Horário atual
+        "horario": format_datetime_friendly(raw_current.get("time", "")),  # Horário atual formatado
         "temperatura_c": raw_current.get("temperature_2m"),  # Temperatura atual
         "sensacao_c": raw_current.get("apparent_temperature"),  # Sensação térmica
         "umidade_pct": raw_current.get("relative_humidity_2m"),  # Umidade relativa

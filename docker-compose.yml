@@ -1,0 +1,24 @@
+services:
+  climaps:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climaps-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persistência no host dos arquivos importados e das exportações geradas
+      - ./data/importados:/app/data/importados
+      - ./exportacoes:/app/exportacoes
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

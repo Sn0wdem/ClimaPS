@@ -1,0 +1,42 @@
+# Controle de versão
+.git
+.gitignore
+
+# Ambientes virtuais locais
+.venv/
+venv/
+ambiente/
+env/
+
+# Caches e arquivos compilados Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testes e relatórios de cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Configurações de IDEs e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Docker config
+.dockerignore
+
+# Arquivos gerados e importados locais (mantém a estrutura e .gitkeep)
+exportacoes/*
+!exportacoes/.gitkeep
+data/importados/*
+!data/importados/.gitkeep
+
+# Arquivos de dados avulsos e rascunhos
+dados_A101_H_*.csv
+!data/dados_A101_H_2014.csv

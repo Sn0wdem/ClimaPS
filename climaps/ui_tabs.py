@@ -76,6 +76,9 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
         st.warning("Nenhum dado disponível para os filtros atuais.")  # Aviso caso não haja registros
         return  # Interrompe a renderização
 
+    is_dark = st.session_state.get("dark_mode", True)  # Recupera preferência de tema da sessão
+    template = "plotly_dark" if is_dark else "plotly_white"  # Define o template Plotly conforme o tema
+
     col_ctrl1, col_ctrl2 = st.columns([1, 1])  # Cria duas colunas iguais para os controles dos gráficos
     with col_ctrl1:  # Primeira coluna de controle
         granularity = st.radio("Agrupamento", ["Por mês", "Por dia"], horizontal=True)  # Seletor de granularidade temporal
@@ -113,7 +116,7 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
             color_continuous_scale="Blues",  # Escala de azul
         )  # Fecha px.bar
         fig_rain.update_layout(  # Ajusta aparência do gráfico de barras
-            template="plotly_white",  # Tema limpo
+            template=template,  # Template adaptado ao tema escuro/claro
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo externo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             coloraxis_showscale=False,  # Oculta barra lateral da escala de cores
@@ -140,16 +143,16 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
                 y=chart_df["temp_min_media"],  # Eixo Y: mínima média
                 name="Temp. mínima média (°C)",  # Nome na legenda
                 mode="lines+markers",  # Linha com marcadores
-                line=dict(color=BLUE, width=2.5),  # Cor azul e espessura 2.5
+                line=dict(color="#38BDF8" if is_dark else BLUE, width=2.5),  # Cor adaptada para bom contraste no escuro
                 fill="tonexty",  # Preenche a área entre esta curva e a curva anterior (mostra a amplitude térmica)
-                fillcolor="rgba(40, 120, 181, 0.12)",  # Azul translúcido para o preenchimento entre as linhas
+                fillcolor="rgba(56, 189, 248, 0.16)" if is_dark else "rgba(40, 120, 181, 0.12)",  # Preenchimento translúcido
             )  # Fecha Scatter
         )  # Fecha add_trace
         fig_temp.update_layout(  # Configura layout do gráfico de temperatura
             title="Amplitude térmica média (°C)",  # Título do gráfico
             xaxis_title=x_title,  # Rótulo do eixo X
             yaxis_title="Temperatura (°C)",  # Rótulo do eixo Y
-            template="plotly_white",  # Tema branco
+            template=template,  # Template adaptado ao tema
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo externo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             hovermode="x unified",  # Mostra máxima e mínima juntas no hover
@@ -173,7 +176,7 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
             title="Correlação entre variáveis",  # Título do gráfico
         )  # Fecha px.imshow
         fig_corr.update_layout(  # Ajusta layout do mapa de calor
-            template="plotly_white",  # Tema branco
+            template=template,  # Template adaptado ao tema
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             height=350,  # Altura em pixels

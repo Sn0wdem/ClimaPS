@@ -87,6 +87,21 @@ def load_into_session(path: Path) -> None:  # Carrega um arquivo CSV do disco pa
 
 def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload, seleção de arquivos e filtros)
     with st.sidebar:  # Entra no contexto da barra lateral
+        st.subheader("🎨 Aparência")  # Seção de tema
+        current_dark = st.session_state.get("dark_mode", True)  # Recupera tema atual
+        theme_choice = st.radio(  # Seletor para alternância de tema
+            "Tema da interface",  # Rótulo
+            ["🌙 Modo Escuro", "☀️ Modo Claro"],  # Opções
+            index=0 if current_dark else 1,  # Padrão escuro
+            horizontal=True,  # Disposição horizontal
+            key="theme_radio_selector",  # Chave única
+        )  # Fecha st.radio
+        is_dark = theme_choice.startswith("🌙")  # Verifica se selecionou modo escuro
+        if is_dark != current_dark:  # Se houve troca de tema
+            st.session_state["dark_mode"] = is_dark  # Atualiza estado na sessão
+            st.rerun()  # Recarrega aplicação para aplicar novos estilos
+
+        st.divider()  # Linha divisória
         st.header("📂 Dados históricos (CSV)")  # Título da seção de carregamento
         uploaded = st.file_uploader("Importar CSV do INMET", type=["csv"])  # Componente de upload aceitando apenas .csv
         if uploaded is not None:  # Se o usuário enviou um arquivo
@@ -202,7 +217,9 @@ def main() -> None:  # Função principal que organiza todo o ciclo de execuçã
         page_icon="☁️",  # Ícone (favicon) da aba
         layout="wide",  # Usa largura total da tela
     )  # Fecha st.set_page_config
-    inject_custom_css()  # Injeta os estilos CSS personalizados
+    if "dark_mode" not in st.session_state:  # Inicializa preferência de tema na sessão
+        st.session_state["dark_mode"] = True  # Padrão: Modo Escuro ativado
+    inject_custom_css(is_dark=st.session_state["dark_mode"])  # Injeta os estilos CSS personalizados adaptados ao tema
     render_header()  # Desenha o banner superior
     filter_spec = render_sidebar()  # Renderiza barra lateral e captura os filtros (ou None se sem base)
 
