@@ -1,12 +1,19 @@
+# Ignora caches compilados do Python
 __pycache__/
 *.py[cod]
+
+# Ignora ambientes virtuais locais
 .venv/
 ambiente/
+
+# Protege eventuais senhas/chaves locais do Streamlit
+.streamlit/secrets.toml
+
+# Ignora arquivos gerados, mantendo as pastas via .gitkeep
 exportacoes/*
 !exportacoes/.gitkeep
 data/importados/*
 !data/importados/.gitkeep
-ANALISE_DO_ARQUIVO.md
-GUIA_DIDATICO.md
 
-
+# Ignora rascunhos e arquivos avulsos locais
+dados_A101_H_2014-01-01_2014-12-31.csv
