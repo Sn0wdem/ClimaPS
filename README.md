@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.gif" alt="ClimaPS - Telemetria climática global" width="100%">
+<img src="docs/clima-mundo.gif" alt="ClimaPS - mapa-múndi com chuva e raios" width="100%">
 
 <br>
 
@@ -205,7 +205,7 @@ flowchart LR
 │   ├── dados_A101_H_2014.csv     # Exemplo de dataset (Manaus A101 - 2014)
 │   └── importados/               # CSVs importados pela interface
 ├── docs/
-│   ├── banner.gif                # Banner animado do README
+│   ├── clima-mundo.gif           # Banner animado do README (mapa-múndi, chuva e raios)
 │   └── divider.gif               # Divisor animado do README
 ├── exportacoes/                  # Arquivos CSV e SQL exportados
 ├── tests/
@@ -235,6 +235,8 @@ python -m unittest discover -s tests -v
 [![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONECTAR-D3FF00?style=for-the-badge&logo=linkedin&logoColor=0B0B0B&labelColor=0B0B0B)](https://linkedin.com/in/guilhermealbuquerquenepomuceno)
 
 ⭐ Curtiu? Deixa uma estrela no repositório!
+
+</div>
 
 </div>
 <img width="1000" height="340" alt="banner" src="https://github.com/user-attachments/assets/6d92deb0-8837-46a7-a9d1-bd9bc3ffc3ef" />
