@@ -5,6 +5,7 @@
 <br>
 
 ![Python](https://img.shields.io/badge/PYTHON-3.10+-D3FF00?style=for-the-badge&logo=python&logoColor=0B0B0B&labelColor=0B0B0B)
+![Docker](https://img.shields.io/badge/DOCKER-CONTAINER-D3FF00?style=for-the-badge&logo=docker&logoColor=0B0B0B&labelColor=0B0B0B)
 ![Streamlit](https://img.shields.io/badge/STREAMLIT-UI-D3FF00?style=for-the-badge&logo=streamlit&logoColor=0B0B0B&labelColor=0B0B0B)
 ![Plotly](https://img.shields.io/badge/PLOTLY-MAPAS-D3FF00?style=for-the-badge&logo=plotly&logoColor=0B0B0B&labelColor=0B0B0B)
 ![pandas](https://img.shields.io/badge/PANDAS-DADOS-D3FF00?style=for-the-badge&logo=pandas&logoColor=0B0B0B&labelColor=0B0B0B)
@@ -89,12 +90,49 @@ git clone <url-do-repositorio>
 cd climaps
 ```
 
+### 🐳 VIA DOCKER (RECOMENDADO)
+
+Suba a aplicação com um único comando (com persistência de dados em `data/importados` e `exportacoes/`):
+
+```bash
+docker compose up -d --build
+```
+
+👉 Abra **http://localhost:8501** no seu navegador e pronto!
+
+<details>
+<summary><b>🛠️ Comandos úteis do Docker</b></summary>
+
+```bash
+# Acompanhar logs em tempo real
+docker compose logs -f
+
+# Parar os serviços
+docker compose down
+
+# Executar a suíte de testes dentro do contêiner
+docker compose run --rm climaps python -m unittest discover -s tests -v
+
+# Alternativa: rodar diretamente via Dockerfile (sem compose)
+docker build -t climaps .
+docker run -d -p 8501:8501 --name climaps-app \
+  -v ./data/importados:/app/data/importados \
+  -v ./exportacoes:/app/exportacoes \
+  climaps
+```
+
+</details>
+
+<br>
+
+### 🐍 INSTALAÇÃO LOCAL (SEM DOCKER)
+
 <details open>
 <summary><b>🪟 WINDOWS (PowerShell)</b></summary>
 
 ```powershell
 py -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -113,7 +151,7 @@ pip install -r requirements.txt
 
 </details>
 
-**Rodar:**
+**Rodar localmente:**
 
 ```bash
 python -m streamlit run app_streamlit.py --server.port 8501
@@ -188,6 +226,9 @@ flowchart LR
 ```text
 .
 ├── app_streamlit.py              # Interface principal em Streamlit
+├── Dockerfile                    # Configuração da imagem Docker otimizada (Python 3.12-slim)
+├── docker-compose.yml            # Orquestração de serviços com volumes persistentes
+├── .dockerignore                 # Arquivos ignorados no build do contêiner
 ├── .streamlit/
 │   └── config.toml               # Tema escuro padrão do ClimaPS
 ├── climaps/
@@ -219,6 +260,14 @@ flowchart LR
 <br>
 
 ## 🧪 TESTES
+
+**Via Docker:**
+
+```bash
+docker compose run --rm climaps python -m unittest discover -s tests -v
+```
+
+**Localmente:**
 
 ```bash
 python -m unittest discover -s tests -v

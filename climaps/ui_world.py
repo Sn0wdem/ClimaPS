@@ -8,7 +8,7 @@ from climaps.core.weather_api import (  # Importa funções de integração com 
     fetch_multiple_points,  # Busca clima atual de várias cidades em uma chamada
     search_city,  # Pesquisa cidades por nome
 )  # Fecha importação
-from climaps.ui_styles import NAVY, br_number  # Importa cor azul-marinho e formatador numérico brasileiro
+from climaps.ui_styles import NAVY, br_number, format_datetime_friendly  # Importa constantes visuais e formatadores
 
 
 WORLD_DEFAULTS = [  # Lista padrão de 10 cidades globais pré-carregadas para comparação inicial
@@ -101,14 +101,14 @@ def render_world_live_tab() -> None:  # Renderiza toda a aba "🌍 Mundo Ao Vivo
 <div class="hero-weather"> <!-- Container principal do cartão de telemetria -->
 <div> <!-- Bloco esquerdo: badge, nome do local e condição -->
 <span class="hero-badge">{weather['periodo']} • {weather['fuso']}</span> <!-- Mostra Dia/Noite e fuso horário -->
-<h3 style="margin:0; color:{NAVY};">{weather['local']}</h3> <!-- Nome da cidade/ponto selecionado -->
-<div style="color:#60758A; font-size:0.92rem; margin-top:4px;"> <!-- Sublinha com condição e horário -->
-{weather['condicao']} • Atualizado em <code>{weather['horario']}</code> <!-- Condição WMO e timestamp -->
+<h3 class="hero-title">{weather['local']}</h3> <!-- Nome da cidade/ponto selecionado -->
+<div class="hero-sub"> <!-- Sublinha com condição e horário amigável -->
+{weather['condicao']} • Atualizado em <code>{format_datetime_friendly(weather['horario'])}</code> <!-- Condição WMO e timestamp amigável -->
 </div> <!-- Fecha bloco de condição -->
 </div> <!-- Fecha bloco esquerdo -->
 <div style="text-align:right;"> <!-- Bloco direito alinhado à direita: temperatura e sensação -->
 <div class="hero-temp">{br_number(weather['temperatura_c'])} °C</div> <!-- Temperatura principal formatada -->
-<div style="color:#60758A; font-size:0.9rem; margin-top:4px;"> <!-- Linha da sensação térmica -->
+<div class="hero-sensacao"> <!-- Linha da sensação térmica -->
 Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da sensação térmica -->
 </div> <!-- Fecha div sensação -->
 </div> <!-- Fecha bloco direito -->
@@ -171,18 +171,11 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
                 st.error(f"Erro ao carregar histórico: {exc}")  # Exibe erro na tela
 
     st.divider()  # Insere uma linha divisória horizontal
-    map_type = st.radio(  # Primeiro seletor de tipo de mapa (nota: aparece duplicado logo abaixo no código original)
+    map_type = st.radio(  # Seletor unificado de tipo de mapa
         "Visualização do mapa mundial",  # Rótulo do radio
         ["🌪️ Mapa animado ao vivo (Windy.com)", "📍 Mapa de pontos comparativo (Plotly)"],  # Opções
         horizontal=True,  # Layout horizontal
-    )  # Fecha primeiro st.radio
-
-    with st.container(border=True):  # Abre um container com borda (contém apenas o segundo st.radio abaixo)
-       map_type = st.radio(  # Segundo seletor com mesmo rótulo e opções invertidas (sobrescreve a variável map_type)
-        "Visualização do mapa mundial",  # Mesmo rótulo (atenção: em Streamlit widgets idênticos sem key podem gerar erro de ID duplicado)
-        ["📍 Mapa de pontos comparativo (Plotly)", "🌪️ Mapa animado ao vivo (Windy.com)"],  # Ordem invertida das opções
-        horizontal=True,  # Layout horizontal
-    )  # Fecha segundo st.radio
+    )  # Fecha st.radio
 
     with st.container(border=True):  # Container com borda onde o mapa escolhido é efetivamente desenhado
         if map_type.startswith("🌪️"):  # Se o usuário selecionou o mapa animado do Windy.com
@@ -224,6 +217,7 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
         else:  # Caso tenha sido escolhido o mapa comparativo de pontos com Plotly
             map_points = st.session_state["world_pins"] or ([weather] if weather is not None else [])  # Usa pinos fixados ou apenas o ponto atual
             if map_points:  # Se houver ao menos 1 ponto para plotar
+                is_dark = st.session_state.get("dark_mode", True)
                 map_df = pd.DataFrame(map_points)  # Converte lista de dicionários em DataFrame
                 fig_map = px.scatter_geo(  # Cria mapa geográfico de dispersão com Plotly
                     map_df,  # Tabela com coordenadas e dados climáticos
@@ -243,16 +237,21 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
                     projection="natural earth",  # Projeção cartográfica Natural Earth
                     title="Mapa mundial — Pontos comparados",  # Título do mapa
                 )  # Fecha px.scatter_geo
-                fig_map.update_traces(marker=dict(size=13, line=dict(width=1.2, color="white")))  # Aumenta pontos e coloca borda branca
+                fig_map.update_traces(
+                    marker=dict(size=13, line=dict(width=1.2, color="#FFFFFF" if not is_dark else "#F1F5F9"))
+                )  # Aumenta pontos e coloca borda
                 fig_map.update_geos(  # Configura estilo geográfico do mapa
                     showcountries=True,  # Mostra fronteiras entre países
                     showcoastlines=True,  # Mostra linhas costeiras
                     showland=True,  # Preenche continentes
-                    landcolor="#EEF3F8",  # Cor clara para a terra
+                    landcolor="#1E293B" if is_dark else "#EEF3F8",  # Cor adaptada da terra
                     showocean=True,  # Preenche oceanos
-                    oceancolor="#DCEBFA",  # Azul claro para oceanos
+                    oceancolor="#0E1726" if is_dark else "#DCEBFA",  # Cor adaptada dos oceanos
+                    countrycolor="#334155" if is_dark else "#D0D9E2",  # Cor das fronteiras
+                    coastlinecolor="#334155" if is_dark else "#D0D9E2",  # Cor da costa
                 )  # Fecha update_geos
                 fig_map.update_layout(  # Ajusta margens e fundos do mapa Plotly
+                    template="plotly_dark" if is_dark else "plotly_white",
                     paper_bgcolor="rgba(0,0,0,0)",  # Fundo externo transparente
                     geo=dict(bgcolor="rgba(0,0,0,0)"),  # Fundo do globo transparente
                     height=450,  # Altura em pixels
@@ -271,12 +270,52 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
             vento = table_df.loc[table_df["vento_kmh"].idxmax()]  # Linha do local com maior vento no momento
 
             d1, d2, d3 = st.columns(3)  # Cria 3 colunas para o pódio de extremos
-            d1.metric("🔥 Mais quente agora", str(quente["local"]), f"{br_number(quente['temperatura_c'])} °C")  # Card do mais quente
-            d2.metric("❄️ Mais frio agora", str(fria["local"]), f"{br_number(fria['temperatura_c'])} °C")  # Card do mais frio
-            d3.metric("💨 Maior vento agora", str(vento["local"]), f"{br_number(vento['vento_kmh'])} km/h")  # Card do maior vento
+            with d1:
+                st.markdown(
+                    f"""
+<div class="kpi-podium-card kpi-hot">
+    <div class="kpi-podium-label">🔥 Mais quente agora</div>
+    <div class="kpi-podium-value" title="{quente['local']}">{quente['local']}</div>
+    <div class="kpi-badge-wrap">
+        <span class="kpi-badge kpi-badge-hot">↑ {br_number(quente['temperatura_c'])} °C</span>
+    </div>
+</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with d2:
+                st.markdown(
+                    f"""
+<div class="kpi-podium-card kpi-cold">
+    <div class="kpi-podium-label">❄️ Mais frio agora</div>
+    <div class="kpi-podium-value" title="{fria['local']}">{fria['local']}</div>
+    <div class="kpi-badge-wrap">
+        <span class="kpi-badge kpi-badge-cold">↓ {br_number(fria['temperatura_c'])} °C</span>
+    </div>
+</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with d3:
+                st.markdown(
+                    f"""
+<div class="kpi-podium-card kpi-wind">
+    <div class="kpi-podium-label">💨 Maior vento agora</div>
+    <div class="kpi-podium-value" title="{vento['local']}">{vento['local']}</div>
+    <div class="kpi-badge-wrap">
+        <span class="kpi-badge kpi-badge-wind">💨 {br_number(vento['vento_kmh'])} km/h</span>
+    </div>
+</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        table_display = table_df.copy()
+        if "horario" in table_display.columns:
+            table_display["horario"] = table_display["horario"].apply(format_datetime_friendly)
 
         st.dataframe(  # Exibe tabela comparativa completa dos locais
-            table_df[  # Seleciona e ordena as colunas mostradas
+            table_display[  # Seleciona e ordena as colunas mostradas
                 [
                     "local",  # Nome do local
                     "condicao",  # Condição atual
@@ -299,6 +338,6 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
                 "vento_kmh": st.column_config.NumberColumn("Vento (km/h)", format="%.1f"),  # 1 casa decimal
                 "pressao_hpa": st.column_config.NumberColumn("Pressão (hPa)", format="%.0f"),  # Inteiro arredondado
                 "precipitacao_mm": st.column_config.NumberColumn("Chuva (mm)", format="%.1f"),  # 1 casa decimal
-                "horario": "Hora local",  # Rótulo Hora local
+                "horario": st.column_config.TextColumn("Hora local"),  # Rótulo Hora local formatada
             },  # Fecha column_config
         )  # Fecha st.dataframe
