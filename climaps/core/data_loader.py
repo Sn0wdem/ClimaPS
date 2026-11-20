@@ -58,11 +58,24 @@ def load_station_csv(path: str | Path) -> StationDataset:  # Função principal 
     colunas normalizadas).
     """
 
-    source = Path(path).expanduser().resolve()  # Converte o caminho para Path, expande "~" se houver e resolve o caminho absoluto
-    if not source.exists():  # Verifica se o arquivo realmente existe no disco
-        raise FileNotFoundError(f"Arquivo não encontrado: {source}")  # Lança exceção caso o arquivo não exista
-
-    texto = source.read_text(encoding="utf-8-sig")  # Lê todo o conteúdo do CSV removendo o BOM UTF-8 se existir
+    if isinstance(path, bytes):
+        source = Path("em_memoria.csv")
+        texto = path.decode("utf-8-sig", errors="replace")
+    elif isinstance(path, StringIO):
+        source = Path("em_memoria.csv")
+        texto = path.getvalue()
+    elif hasattr(path, "read"):  # Suporta UploadedFile do Streamlit ou BytesIO
+        source = Path(getattr(path, "name", "upload.csv"))
+        raw = path.read()
+        if isinstance(raw, str):
+            texto = raw
+        else:
+            texto = raw.decode("utf-8-sig", errors="replace")
+    else:
+        source = Path(path).expanduser().resolve()  # Converte o caminho para Path, expande "~" se houver e resolve o caminho absoluto
+        if not source.exists():  # Verifica se o arquivo realmente existe no disco
+            raise FileNotFoundError(f"Arquivo não encontrado: {source}")  # Lança exceção caso o arquivo não exista
+        texto = source.read_text(encoding="utf-8-sig")  # Lê todo o conteúdo do CSV removendo o BOM UTF-8 se existir
     linhas = texto.splitlines()  # Quebra o texto lido em uma lista de linhas
     header_index = _localizar_cabecalho(linhas)  # Descobre o índice da linha em que a tabela de dados começa
 

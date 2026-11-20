@@ -18,6 +18,7 @@ from climaps.ui_styles import format_datetime_friendly  # Formata datas/horas no
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"  # Endpoint público de busca de cidades por nome (Open-Meteo)
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"  # Endpoint público de previsão e clima atual (Open-Meteo)
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"  # Endpoint de qualidade do ar e queimadas (Open-Meteo)
+ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"  # Endpoint histórico de reanálise ERA5 desde 1940 (Open-Meteo)
 
 WMO_CODES_PT = {  # Dicionário que traduz códigos meteorológicos padrão WMO (Organização Meteorológica Mundial) para português + emoji
     0: "☀️ Céu limpo",  # Código 0: céu limpo
@@ -344,3 +345,222 @@ def fetch_live_weather(  # Busca clima atual, previsão diária e série horári
         daily_forecast=daily_df,  # Previsão diária
         dataset=dataset,  # Dataset compatível com as abas analíticas
     )  # Fecha retorno
+
+
+def fetch_historical_day(
+    latitude: float,
+    longitude: float,
+    location_label: str,
+    target_date: str | pd.Timestamp,
+) -> dict[str, object]:
+    """Consulta os dados meteorológicos completos de qualquer dia específico da história para uma coordenada."""
+    if isinstance(target_date, (pd.Timestamp, pd.DatetimeIndex)):
+        date_str = target_date.strftime("%Y-%m-%d")
+    else:
+        date_str = str(target_date)[:10]
+
+    today = pd.Timestamp.now().floor("D")
+    target_dt = pd.to_datetime(date_str)
+    days_diff = (today - target_dt).days
+
+    # Usa archive para datas com mais de 5 dias atrás e forecast para dias recentes ou futuros
+    primary_url = ARCHIVE_URL if days_diff > 5 else FORECAST_URL
+    fallback_url = FORECAST_URL if primary_url == ARCHIVE_URL else ARCHIVE_URL
+
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": date_str,
+        "end_date": date_str,
+        "hourly": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,surface_pressure,wind_speed_10m,weather_code",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,sunrise,sunset,weather_code",
+        "timezone": "auto",
+    }
+
+    payload = None
+    try:
+        resp = requests.get(primary_url, params=params, timeout=15)
+        resp.raise_for_status()
+        payload = resp.json()
+    except Exception:
+        resp = requests.get(fallback_url, params=params, timeout=15)
+        resp.raise_for_status()
+        payload = resp.json()
+
+    daily = payload.get("daily", {}) or {}
+    hourly = payload.get("hourly", {}) or {}
+
+    tmax = (daily.get("temperature_2m_max") or [None])[0]
+    tmin = (daily.get("temperature_2m_min") or [None])[0]
+    psum = (daily.get("precipitation_sum") or [0.0])[0]
+    wmax = (daily.get("wind_speed_10m_max") or [None])[0]
+    sunrise = (daily.get("sunrise") or [""])[0] or ""
+    sunset = (daily.get("sunset") or [""])[0] or ""
+    code_daily = (daily.get("weather_code") or [None])[0]
+
+    hourly_times = hourly.get("time", [])
+    hourly_temps = hourly.get("temperature_2m", [])
+    hourly_humids = hourly.get("relative_humidity_2m", [])
+    hourly_apparents = hourly.get("apparent_temperature", [])
+    hourly_rains = hourly.get("precipitation", [])
+    hourly_press = hourly.get("surface_pressure", [])
+    hourly_winds = hourly.get("wind_speed_10m", [])
+    hourly_codes = hourly.get("weather_code", [])
+
+    hourly_records = []
+    for i, t in enumerate(hourly_times):
+        temp = hourly_temps[i] if i < len(hourly_temps) else None
+        h_rain = hourly_rains[i] if i < len(hourly_rains) else 0.0
+        h_hum = hourly_humids[i] if i < len(hourly_humids) else None
+        h_wind = hourly_winds[i] if i < len(hourly_winds) else None
+        h_code = hourly_codes[i] if i < len(hourly_codes) else None
+        hora_label = t[-5:] if len(t) >= 5 else f"{i:02d}:00"
+        hourly_records.append(
+            {
+                "data_hora_raw": t,
+                "hora_label": hora_label,
+                "temperatura_c": temp,
+                "chuva_mm": h_rain if h_rain is not None else 0.0,
+                "umidade_pct": h_hum,
+                "vento_kmh": h_wind,
+                "condicao": weather_description(h_code),
+            }
+        )
+
+    valid_temps = [t for t in hourly_temps if t is not None and not pd.isna(t)]
+    temp_media = (sum(valid_temps) / len(valid_temps)) if valid_temps else None
+    valid_hum = [h for h in hourly_humids if h is not None and not pd.isna(h)]
+    umid_media = (sum(valid_hum) / len(valid_hum)) if valid_hum else None
+    valid_press = [p for p in hourly_press if p is not None and not pd.isna(p)]
+    press_media = (sum(valid_press) / len(valid_press)) if valid_press else None
+
+    dt_obj = pd.to_datetime(date_str)
+    dias_semana = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+    dia_semana_str = dias_semana[dt_obj.weekday()]
+
+    return {
+        "local": location_label,
+        "latitude": float(payload.get("latitude", latitude)),
+        "longitude": float(payload.get("longitude", longitude)),
+        "data_iso": date_str,
+        "data_formatada": dt_obj.strftime("%d/%m/%Y"),
+        "dia_semana": dia_semana_str,
+        "fuso": payload.get("timezone", "UTC"),
+        "temp_max_c": tmax,
+        "temp_min_c": tmin,
+        "temp_media_c": temp_media,
+        "amplitude_termica_c": (tmax - tmin) if (tmax is not None and tmin is not None) else None,
+        "precipitacao_total_mm": psum if psum is not None else 0.0,
+        "vento_max_kmh": wmax,
+        "pressao_media_hpa": press_media,
+        "umidade_media_pct": umid_media,
+        "nascer_sol": sunrise[-5:] if sunrise else "-",
+        "por_sol": sunset[-5:] if sunset else "-",
+        "condicao": weather_description(code_daily),
+        "hourly": hourly_records,
+    }
+
+
+def fetch_annual_dataset(
+    latitude: float,
+    longitude: float,
+    location_name: str,
+    year: int,
+) -> tuple[StationDataset, bytes]:
+    """Baixa 1 ano inteiro de histórico climático (8.760 horas) para uma localização e gera CSV e StationDataset."""
+    start_date = f"{year}-01-01"
+    now = pd.Timestamp.now()
+    if year >= now.year:
+        end_date = (now - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        primary_url = FORECAST_URL
+        fallback_url = ARCHIVE_URL
+    else:
+        end_date = f"{year}-12-31"
+        primary_url = ARCHIVE_URL
+        fallback_url = FORECAST_URL
+
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": start_date,
+        "end_date": end_date,
+        "hourly": "temperature_2m,precipitation",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "timezone": "auto",
+    }
+
+    try:
+        resp = requests.get(primary_url, params=params, timeout=25)
+        resp.raise_for_status()
+        payload = resp.json()
+    except Exception:
+        resp = requests.get(fallback_url, params=params, timeout=25)
+        resp.raise_for_status()
+        payload = resp.json()
+
+    raw_hourly = payload.get("hourly", {}) or {}
+    times = raw_hourly.get("time", [])
+    if not times:
+        raise ValueError(f"Nenhum dado retornado para o ano {year} nas coordenadas ({latitude}, {longitude}).")
+
+    dt_series = pd.to_datetime(times, errors="coerce")
+    temp_series = pd.to_numeric(raw_hourly.get("temperature_2m", []), errors="coerce")
+    rain_series = pd.to_numeric(raw_hourly.get("precipitation", []), errors="coerce")
+
+    df = (
+        pd.DataFrame(
+            {
+                "data": dt_series.floor("D"),
+                "hora": dt_series.hour * 100,
+                "precipitacao_mm": rain_series,
+                "temp_max_c": temp_series,
+                "temp_min_c": temp_series,
+                "data_hora": dt_series,
+                "hora_num": dt_series.hour,
+                "mes": dt_series.month,
+                "dia": dt_series.floor("D"),
+            }
+        )
+        .dropna(subset=["data_hora"])
+        .sort_values("data_hora")
+        .reset_index(drop=True)
+    )
+
+    metadata = {
+        "nome": f"{location_name.upper()} ({year})",
+        "codigo_estacao": "OPEN-METEO-ERA5",
+        "latitude": f"{latitude:.2f}",
+        "longitude": f"{longitude:.2f}",
+        "ano": str(year),
+        "total_registros": str(len(df)),
+    }
+
+    safe_name = "".join(c if c.isalnum() else "_" for c in location_name).strip("_")
+    source_name = f"climaps_{safe_name}_{year}.csv"
+    dataset = StationDataset(
+        metadata=metadata,
+        data=df,
+        source=Path(source_name),
+    )
+
+    # Gera conteúdo CSV formatado com cabeçalho de metadados legível pelo ClimaPS
+    header_meta = [
+        f"Nome: {location_name.upper()} ({year})",
+        "Codigo Estacao: OPEN-METEO-ERA5",
+        f"Latitude: {latitude:.4f}",
+        f"Longitude: {longitude:.4f}",
+        f"Ano: {year}",
+        "Fonte: Open-Meteo Reanalysis ERA5",
+        "",
+    ]
+    meta_str = "\n".join(header_meta) + "\n"
+    csv_body = df.to_csv(
+        sep=";",
+        decimal=",",
+        index=False,
+        date_format="%Y-%m-%d %H:%M",
+    )
+    full_csv_text = meta_str + csv_body
+    csv_bytes = full_csv_text.encode("utf-8-sig")
+
+    return dataset, csv_bytes

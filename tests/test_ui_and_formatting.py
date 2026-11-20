@@ -241,6 +241,147 @@ class FormattingAndUiTests(unittest.TestCase):
             if tmp_path.exists():
                 tmp_path.unlink()
 
+    def test_fetch_historical_day(self):
+        from unittest.mock import MagicMock, patch
+        from climaps.core.weather_api import fetch_historical_day
+
+        mock_payload = {
+            "latitude": -3.10,
+            "longitude": -60.02,
+            "timezone": "America/Manaus",
+            "daily": {
+                "temperature_2m_max": [33.5],
+                "temperature_2m_min": [24.0],
+                "precipitation_sum": [12.4],
+                "wind_speed_10m_max": [18.2],
+                "sunrise": ["2024-06-15T05:58"],
+                "sunset": ["2024-06-15T18:02"],
+                "weather_code": [61],
+            },
+            "hourly": {
+                "time": [f"2024-06-15T{h:02d}:00" for h in range(24)],
+                "temperature_2m": [25.0 + (h % 9) for h in range(24)],
+                "relative_humidity_2m": [80.0 - (h % 20) for h in range(24)],
+                "apparent_temperature": [28.0 + (h % 10) for h in range(24)],
+                "precipitation": [0.5 if h == 14 else 0.0 for h in range(24)],
+                "surface_pressure": [1012.0 for _ in range(24)],
+                "wind_speed_10m": [10.0 + (h % 5) for h in range(24)],
+                "weather_code": [61 if h == 14 else 1 for h in range(24)],
+            },
+        }
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = mock_payload
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("climaps.core.weather_api.requests.get", return_value=mock_resp):
+            res = fetch_historical_day(-3.10, -60.02, "Manaus (BR)", "2024-06-15")
+
+        self.assertEqual(res["local"], "Manaus (BR)")
+        self.assertEqual(res["data_iso"], "2024-06-15")
+        self.assertEqual(res["temp_max_c"], 33.5)
+        self.assertEqual(res["temp_min_c"], 24.0)
+        self.assertEqual(res["precipitacao_total_mm"], 12.4)
+        self.assertEqual(len(res["hourly"]), 24)
+        self.assertEqual(res["hourly"][14]["chuva_mm"], 0.5)
+
+    def test_fetch_annual_dataset_and_load_station_csv(self):
+        import tempfile
+        from unittest.mock import MagicMock, patch
+        from climaps.core.weather_api import fetch_annual_dataset
+        from climaps.core.data_loader import load_station_csv
+
+        # Gera 8760 horas sintéticas
+        times = [ts.strftime("%Y-%m-%dT%H:00") for ts in pd.date_range("2024-01-01", "2024-12-31 23:00", freq="h")]
+        self.assertEqual(len(times), 8784)  # 2024 é bissexto -> 366 dias * 24 = 8784 horas
+
+        mock_payload = {
+            "latitude": -3.10,
+            "longitude": -60.02,
+            "hourly": {
+                "time": times,
+                "temperature_2m": [28.0] * len(times),
+                "precipitation": [1.5] * len(times),
+            },
+        }
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = mock_payload
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("climaps.core.weather_api.requests.get", return_value=mock_resp):
+            dataset, csv_bytes = fetch_annual_dataset(-3.10, -60.02, "Manaus (BR)", 2024)
+
+        self.assertEqual(len(dataset.data), 8784)
+        self.assertIn("precipitacao_mm", dataset.data.columns)
+        self.assertIn("temp_max_c", dataset.data.columns)
+        self.assertIn("temp_min_c", dataset.data.columns)
+
+        # Salva em arquivo temporário e valida compatibilidade total com load_station_csv
+        with tempfile.NamedTemporaryFile(suffix=".csv", mode="wb", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            tmp.write(csv_bytes)
+
+        try:
+            reloaded = load_station_csv(tmp_path)
+            self.assertEqual(len(reloaded.data), 8784)
+            self.assertEqual(reloaded.metadata.get("codigo_estacao"), "OPEN-METEO-ERA5")
+            self.assertEqual(reloaded.data["precipitacao_mm"].iloc[0], 1.5)
+            self.assertEqual(reloaded.data["temp_max_c"].iloc[0], 28.0)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+    def test_load_station_csv_from_bytes_and_stream(self):
+        import io
+        from climaps.core.data_loader import load_station_csv
+
+        csv_content = (
+            "Nome: MANAUS\n"
+            "Codigo Estacao: A101\n"
+            "Ano: 2024\n"
+            "\n"
+            "data;hora;precipitacao_mm;temp_max_c;temp_min_c;data_hora;hora_num;mes;dia\n"
+            "2024-01-01;0;0,0;25,2;24,8;2024-01-01 00:00;0;1;2024-01-01\n"
+            "2024-01-01;100;2,4;24,5;24,0;2024-01-01 01:00;1;1;2024-01-01\n"
+        )
+        csv_bytes = csv_content.encode("utf-8-sig")
+
+        # 1. Carregando diretamente de bytes
+        ds_bytes = load_station_csv(csv_bytes)
+        self.assertEqual(len(ds_bytes.data), 2)
+        self.assertEqual(ds_bytes.metadata.get("codigo_estacao"), "A101")
+        self.assertEqual(ds_bytes.data["precipitacao_mm"].iloc[1], 2.4)
+
+        # 2. Carregando de objeto tipo BytesIO / UploadedFile
+        stream = io.BytesIO(csv_bytes)
+        stream.name = "upload_teste.csv"
+        ds_stream = load_station_csv(stream)
+        self.assertEqual(len(ds_stream.data), 2)
+        self.assertEqual(ds_stream.source.name, "upload_teste.csv")
+
+    def test_comparison_metadata_detection(self):
+        from climaps.core.data_loader import StationDataset
+        from climaps.ui_comparison import _identificar_ano_e_nome
+
+        df = pd.DataFrame(
+            {
+                "data_hora": pd.to_datetime(["2020-05-01 12:00", "2020-05-02 12:00"]),
+                "temp_max_c": [30.0, 31.0],
+                "temp_min_c": [22.0, 23.0],
+                "precipitacao_mm": [0.0, 5.0],
+            }
+        )
+        ds = StationDataset(
+            metadata={"nome": "ESTAÇÃO METEOROLÓGICA MANAUS", "ano": "2020"},
+            data=df,
+            source=Path("dados_manaus_2020.csv"),
+        )
+
+        nome, ano = _identificar_ano_e_nome(ds)
+        self.assertIn("Manaus", nome)
+        self.assertEqual(ano, "2020")
+
 
 if __name__ == "__main__":
     unittest.main()

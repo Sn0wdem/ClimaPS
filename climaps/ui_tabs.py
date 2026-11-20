@@ -78,6 +78,8 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
 
     is_dark = st.session_state.get("dark_mode", True)  # Recupera preferência de tema da sessão
     template = "plotly_dark" if is_dark else "plotly_white"  # Define o template Plotly conforme o tema
+    chart_text_color = "#E2E8F0" if is_dark else "#0F172A"  # Alto contraste para fontes no tema claro e escuro
+    grid_color = "rgba(255,255,255,0.06)" if is_dark else "#E2E8F0"  # Grade sutil adaptativa
 
     col_ctrl1, col_ctrl2 = st.columns([1, 1])  # Cria duas colunas iguais para os controles dos gráficos
     with col_ctrl1:  # Primeira coluna de controle
@@ -113,10 +115,16 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
             title="Precipitação acumulada (mm)",  # Título do gráfico
             labels={"label": x_title, "precipitacao_mm": "Chuva (mm)"},  # Rótulos dos eixos
             color="precipitacao_mm",  # Colore as barras conforme intensidade da chuva
-            color_continuous_scale="Blues",  # Escala de azul
+            color_continuous_scale="Blues",  # Escala clássica azul
         )  # Fecha px.bar
         fig_rain.update_layout(  # Ajusta aparência do gráfico de barras
             template=template,  # Template adaptado ao tema escuro/claro
+            font=dict(color=chart_text_color, family="Inter, sans-serif"),
+            hoverlabel=dict(
+                bgcolor="#1E293B" if is_dark else "#FFFFFF",
+                bordercolor="#334155" if is_dark else "#CBD5E1",
+                font=dict(color="#F8FAFC" if is_dark else "#0F172A", family="Inter, sans-serif"),
+            ),
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo externo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             coloraxis_showscale=False,  # Oculta barra lateral da escala de cores
@@ -124,7 +132,9 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
             height=360,  # Altura em pixels
             margin=dict(t=45, b=20),  # Margens superior e inferior
         )  # Fecha update_layout
-        st.plotly_chart(fig_rain, width="stretch")  # Exibe o gráfico ocupando toda a largura disponível
+        fig_rain.update_xaxes(tickfont=dict(color=chart_text_color), title_font=dict(color=chart_text_color))
+        fig_rain.update_yaxes(showgrid=True, gridcolor=grid_color, tickfont=dict(color=chart_text_color), title_font=dict(color=chart_text_color))
+        st.plotly_chart(fig_rain, width="stretch", config={"displayModeBar": "hover", "displaylogo": False})  # Exibe o gráfico ocupando toda a largura disponível
 
     with st.container(border=True):  # Cartão com borda para o gráfico de amplitude térmica
         fig_temp = go.Figure()  # Inicializa uma figura vazia do Plotly Graph Objects
@@ -134,7 +144,8 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
                 y=chart_df["temp_max_media"],  # Eixo Y: máxima média
                 name="Temp. máxima média (°C)",  # Nome na legenda
                 mode="lines+markers",  # Linha com marcadores nos pontos
-                line=dict(color=ORANGE, width=2.5),  # Cor laranja e espessura 2.5
+                line=dict(color="#F59E0B" if is_dark else "#D97706", width=2.5),  # Âmbar suave
+                marker=dict(size=6, color="#F59E0B" if is_dark else "#D97706"),
             )  # Fecha Scatter
         )  # Fecha add_trace
         fig_temp.add_trace(  # Adiciona a segunda curva: temperatura mínima média
@@ -143,9 +154,10 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
                 y=chart_df["temp_min_media"],  # Eixo Y: mínima média
                 name="Temp. mínima média (°C)",  # Nome na legenda
                 mode="lines+markers",  # Linha com marcadores
-                line=dict(color="#38BDF8" if is_dark else BLUE, width=2.5),  # Cor adaptada para bom contraste no escuro
+                line=dict(color="#0EA5E9" if is_dark else "#0284C7", width=2.5),  # Azul celeste
+                marker=dict(size=6, color="#0EA5E9" if is_dark else "#0284C7"),
                 fill="tonexty",  # Preenche a área entre esta curva e a curva anterior (mostra a amplitude térmica)
-                fillcolor="rgba(56, 189, 248, 0.16)" if is_dark else "rgba(40, 120, 181, 0.12)",  # Preenchimento translúcido
+                fillcolor="rgba(14, 165, 233, 0.12)" if is_dark else "rgba(2, 132, 199, 0.12)",  # Preenchimento translúcido
             )  # Fecha Scatter
         )  # Fecha add_trace
         fig_temp.update_layout(  # Configura layout do gráfico de temperatura
@@ -153,14 +165,22 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
             xaxis_title=x_title,  # Rótulo do eixo X
             yaxis_title="Temperatura (°C)",  # Rótulo do eixo Y
             template=template,  # Template adaptado ao tema
+            font=dict(color=chart_text_color, family="Inter, sans-serif"),
+            hoverlabel=dict(
+                bgcolor="#1E293B" if is_dark else "#FFFFFF",
+                bordercolor="#334155" if is_dark else "#CBD5E1",
+                font=dict(color="#F8FAFC" if is_dark else "#0F172A", family="Inter, sans-serif"),
+            ),
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo externo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             hovermode="x unified",  # Mostra máxima e mínima juntas no hover
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),  # Legenda horizontal no topo direito
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=chart_text_color)),  # Legenda horizontal no topo direito
             height=380,  # Altura em pixels
             margin=dict(t=55, b=20),  # Margens
         )  # Fecha update_layout
-        st.plotly_chart(fig_temp, width="stretch")  # Renderiza o gráfico na interface
+        fig_temp.update_xaxes(showgrid=True, gridcolor=grid_color, tickfont=dict(color=chart_text_color), title_font=dict(color=chart_text_color))
+        fig_temp.update_yaxes(showgrid=True, gridcolor=grid_color, tickfont=dict(color=chart_text_color), title_font=dict(color=chart_text_color))
+        st.plotly_chart(fig_temp, width="stretch", config={"displayModeBar": "hover", "displaylogo": False})  # Renderiza o gráfico na interface
 
     with st.container(border=True):  # Cartão com borda para a matriz de correlação
         corr = correlation_matrix(filtered).rename(  # Calcula correlação e renomeia índices/colunas para exibição amigável
@@ -177,12 +197,20 @@ def render_charts_tab(filtered: pd.DataFrame) -> None:  # Renderiza a aba "📈 
         )  # Fecha px.imshow
         fig_corr.update_layout(  # Ajusta layout do mapa de calor
             template=template,  # Template adaptado ao tema
+            font=dict(color=chart_text_color, family="Inter, sans-serif"),
+            hoverlabel=dict(
+                bgcolor="#1E293B" if is_dark else "#FFFFFF",
+                bordercolor="#334155" if is_dark else "#CBD5E1",
+                font=dict(color="#F8FAFC" if is_dark else "#0F172A", family="Inter, sans-serif"),
+            ),
             paper_bgcolor="rgba(0,0,0,0)",  # Fundo transparente
             plot_bgcolor="rgba(0,0,0,0)",  # Fundo interno transparente
             height=350,  # Altura em pixels
             margin=dict(t=45, b=20),  # Margens
         )  # Fecha update_layout
-        st.plotly_chart(fig_corr, width="stretch")  # Renderiza o heatmap
+        fig_corr.update_xaxes(tickfont=dict(color=chart_text_color))
+        fig_corr.update_yaxes(tickfont=dict(color=chart_text_color))
+        st.plotly_chart(fig_corr, width="stretch", config={"displayModeBar": "hover", "displaylogo": False})  # Renderiza o heatmap
 
 
 def render_table_tab(full_df: pd.DataFrame) -> None:  # Renderiza a aba "✏️ Tabela editável"
