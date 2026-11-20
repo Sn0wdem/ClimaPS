@@ -7,6 +7,7 @@ import streamlit as st  # Framework principal da aplicação web
 
 from climaps.core.analysis import FilterSpec, apply_filters  # Estrutura de filtro e função que filtra o DataFrame
 from climaps.core.data_loader import StationDataset, load_station_csv  # Leitor de CSVs do INMET e tipo StationDataset
+from climaps.ui_comparison import render_comparison_tab  # Função que renderiza a aba de Comparação entre Anos (CSV)
 from climaps.ui_styles import inject_custom_css, render_header  # Estilização CSS e renderização do banner superior
 from climaps.ui_tabs import (  # Funções que renderizam as abas de análise histórica
     render_charts_tab,  # Aba de gráficos
@@ -87,23 +88,23 @@ def load_into_session(path: Path) -> None:  # Carrega um arquivo CSV do disco pa
 
 def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload, seleção de arquivos e filtros)
     with st.sidebar:  # Entra no contexto da barra lateral
-        st.subheader("🎨 Aparência")  # Seção de tema
+        st.subheader("🎨 Tema da Interface")  # Seção de tema visual
         current_dark = st.session_state.get("dark_mode", True)  # Recupera tema atual
         theme_choice = st.radio(  # Seletor para alternância de tema
             "Tema da interface",  # Rótulo
-            ["🌙 Modo Escuro", "☀️ Modo Claro"],  # Opções
-            index=0 if current_dark else 1,  # Padrão escuro
+            ["Dark mode", "White mode"],  # Opções de tema simplificadas
+            index=0 if current_dark else 1,  # Padrão Dark mode
             horizontal=True,  # Disposição horizontal
             key="theme_radio_selector",  # Chave única
         )  # Fecha st.radio
-        is_dark = theme_choice.startswith("🌙")  # Verifica se selecionou modo escuro
+        is_dark = theme_choice == "Dark mode"  # Ativa modo escuro quando selecionado Dark mode
         if is_dark != current_dark:  # Se houve troca de tema
             st.session_state["dark_mode"] = is_dark  # Atualiza estado na sessão
             st.rerun()  # Recarrega aplicação para aplicar novos estilos
 
         st.divider()  # Linha divisória
         st.header("📂 Dados históricos (CSV)")  # Título da seção de carregamento
-        uploaded = st.file_uploader("Importar CSV do INMET", type=["csv"])  # Componente de upload aceitando apenas .csv
+        uploaded = st.file_uploader("Importar CSV (INMET ou ClimaPS)", type=["csv"])  # Componente de upload aceitando arquivos INMET e exportados
         if uploaded is not None:  # Se o usuário enviou um arquivo
             sig = (uploaded.name, uploaded.size)  # Cria assinatura (nome, tamanho) para não reprocessar o mesmo upload a cada rerun
             if st.session_state.get("last_upload_sig") != sig:  # Só importa se for um arquivo novo/diferente
@@ -111,15 +112,20 @@ def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload,
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Gera carimbo de data/hora para evitar sobrescrever arquivos
                 dest = IMPORT_DIR / f"{stamp}_{safe_filename(uploaded.name)}"  # Define caminho final seguro do arquivo salvo
                 dest.write_bytes(uploaded.getvalue())  # Grava os bytes do arquivo enviado no disco
-                load_into_session(dest)  # Carrega o CSV recém-salvo na sessão
-                st.session_state["last_upload_sig"] = sig  # Registra assinatura para evitar reimportação repetida
-                st.toast(f"Arquivo importado: {dest.name}", icon="✅")  # Exibe notificação de sucesso
+                try:
+                    load_into_session(dest)  # Carrega o CSV recém-salvo na sessão
+                    st.session_state["last_upload_sig"] = sig  # Registra assinatura para evitar reimportação repetida
+                    st.toast(f"Arquivo importado: {dest.name}", icon="✅")  # Exibe notificação de sucesso
+                except Exception as exc:  # Tratamento amigável de erro se o arquivo for inválido
+                    st.error(f"Erro ao carregar o arquivo CSV: {exc}")
 
         available_files: list[Path] = []  # Lista de arquivos CSV já disponíveis localmente
         if SAMPLE_CSV.exists():  # Se o CSV de exemplo existir
             available_files.append(SAMPLE_CSV)  # Adiciona o arquivo de exemplo à lista
         if IMPORT_DIR.exists():  # Se a pasta de importados existir
             available_files.extend(sorted(IMPORT_DIR.glob("*.csv"), reverse=True))  # Adiciona CSVs importados do mais recente ao mais antigo
+        if EXPORT_DIR.exists():  # Se a pasta de exportados existir
+            available_files.extend(sorted(EXPORT_DIR.glob("*.csv"), reverse=True))  # Adiciona CSVs exportados
 
         if available_files:  # Se houver ao menos um arquivo local disponível
             chosen = st.selectbox(  # Caixa de seleção para escolher um arquivo salvo
@@ -128,8 +134,11 @@ def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload,
                 format_func=lambda p: f"{p.parent.name}/{p.name}",  # Exibe no formato "pasta/arquivo.csv"
             )  # Fecha selectbox
             if st.button("Carregar arquivo selecionado", width="stretch"):  # Botão para confirmar o carregamento do arquivo escolhido
-                load_into_session(chosen)  # Carrega o arquivo escolhido na sessão
-                st.rerun()  # Recarrega a página para atualizar cabeçalho, filtros e abas
+                try:
+                    load_into_session(chosen)  # Carrega o arquivo escolhido na sessão
+                    st.rerun()  # Recarrega a página para atualizar cabeçalho, filtros e abas
+                except Exception as exc:  # Tratamento amigável caso haja erro de leitura
+                    st.error(f"Erro ao carregar o arquivo selecionado: {exc}")
 
         df: pd.DataFrame | None = st.session_state.get("df")  # Recupera o DataFrame ativo da sessão
         if df is None or df.empty:  # Se ainda não houver dados carregados
@@ -213,7 +222,7 @@ def render_export_tab(full_df: pd.DataFrame, filtered: pd.DataFrame) -> None:  #
 
 def main() -> None:  # Função principal que organiza todo o ciclo de execução do app Streamlit
     st.set_page_config(  # Configura metadados da aba do navegador e layout da página (deve ser a primeira chamada Streamlit)
-        page_title="ClimaPS - Dados Meteorológicos",  # Título na aba do navegador
+        page_title="CLIMAPS - Dados Meteorológicos",  # Título na aba do navegador
         page_icon="☁️",  # Ícone (favicon) da aba
         layout="wide",  # Usa largura total da tela
     )  # Fecha st.set_page_config
@@ -226,12 +235,23 @@ def main() -> None:  # Função principal que organiza todo o ciclo de execuçã
     df: pd.DataFrame | None = st.session_state.get("df")  # Recupera DataFrame ativo da sessão
     has_dataset = df is not None and not df.empty and filter_spec is not None  # Verifica se há dataset válido e filtro pronto
 
-    tab_mundo, tab_resumo, tab_graficos, tab_tabela, tab_explorador, tab_exportar = st.tabs(  # Cria as 6 abas principais do app
-        ["🌍 Mundo Ao Vivo", "📊 Resumo", "📈 Gráficos", "✏️ Tabela editável", "🔍 Explorador", "⬇️ Exportar"]  # Rótulos das abas
+    tab_mundo, tab_comp, tab_resumo, tab_graficos, tab_tabela, tab_explorador, tab_exportar = st.tabs(  # Cria as 7 abas principais do app
+        [
+            "🌍 Mundo Ao Vivo",
+            "⚖️ Comparar Anos (CSV)",
+            "📊 Resumo",
+            "📈 Gráficos",
+            "✏️ Tabela editável",
+            "🔍 Explorador",
+            "⬇️ Exportar",
+        ]  # Rótulos das abas
     )  # Fecha st.tabs
 
     with tab_mundo:  # Conteúdo da primeira aba (funciona sempre, mesmo sem CSV)
         render_world_live_tab()  # Renderiza consultas ao vivo, mapas e tabela global
+
+    with tab_comp:  # Conteúdo da aba de Comparação Interanual (funciona sempre, com seleção/upload próprio)
+        render_comparison_tab()  # Renderiza comparação de dois arquivos/anos CSV
 
     if has_dataset:  # Se já existir uma base histórica carregada (via CSV ou botão de 30 dias)
         filtered = apply_filters(df, filter_spec)  # Aplica os filtros da barra lateral sobre o DataFrame da sessão
