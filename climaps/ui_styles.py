@@ -313,6 +313,63 @@ div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {{
     color: {kpi_wind_color};
     border: 1px solid {kpi_wind_border};
 }}
+.storm-banner {{
+    border-radius: 12px;
+    padding: 0.85rem 1.2rem;
+    margin: 0.6rem 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.93rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}}
+.storm-banner.storm-high {{
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(185, 28, 28, 0.32) 100%);
+    border: 1.5px solid #EF4444;
+    color: {"#FECACA" if is_dark else "#991B1B"};
+}}
+.storm-banner.storm-med {{
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.25) 100%);
+    border: 1.5px solid #F59E0B;
+    color: {"#FDE68A" if is_dark else "#92400E"};
+}}
+.storm-banner.storm-low {{
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.18) 100%);
+    border: 1px solid #10B981;
+    color: {"#A7F3D0" if is_dark else "#065F46"};
+}}
+.anomaly-card {{
+    background-color: {kpi_bg};
+    border: 1px solid {kpi_border};
+    border-left: 5px solid #F28C28;
+    border-radius: 12px;
+    padding: 1rem 1.3rem;
+    margin: 0.8rem 0 1rem 0;
+    box-shadow: {kpi_shadow};
+}}
+.anomaly-card-title {{
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: {hero_title};
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}}
+.anomaly-card-desc {{
+    font-size: 0.92rem;
+    color: {hero_sub};
+    margin: 0;
+    line-height: 1.45;
+}}
+.aqi-container {{
+    background-color: {kpi_bg};
+    border: 1px solid {kpi_border};
+    border-radius: 14px;
+    padding: 1rem 1.3rem;
+    margin: 0.8rem 0 1rem 0;
+    box-shadow: {kpi_shadow};
+}}
 </style>
         """,
         unsafe_allow_html=True,

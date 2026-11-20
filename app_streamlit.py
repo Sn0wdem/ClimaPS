@@ -103,7 +103,7 @@ def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload,
 
         st.divider()  # Linha divisória
         st.header("📂 Dados históricos (CSV)")  # Título da seção de carregamento
-        uploaded = st.file_uploader("Importar CSV do INMET", type=["csv"])  # Componente de upload aceitando apenas .csv
+        uploaded = st.file_uploader("Importar CSV (INMET ou ClimaPS)", type=["csv"])  # Componente de upload aceitando arquivos INMET e exportados
         if uploaded is not None:  # Se o usuário enviou um arquivo
             sig = (uploaded.name, uploaded.size)  # Cria assinatura (nome, tamanho) para não reprocessar o mesmo upload a cada rerun
             if st.session_state.get("last_upload_sig") != sig:  # Só importa se for um arquivo novo/diferente
@@ -111,15 +111,20 @@ def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload,
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Gera carimbo de data/hora para evitar sobrescrever arquivos
                 dest = IMPORT_DIR / f"{stamp}_{safe_filename(uploaded.name)}"  # Define caminho final seguro do arquivo salvo
                 dest.write_bytes(uploaded.getvalue())  # Grava os bytes do arquivo enviado no disco
-                load_into_session(dest)  # Carrega o CSV recém-salvo na sessão
-                st.session_state["last_upload_sig"] = sig  # Registra assinatura para evitar reimportação repetida
-                st.toast(f"Arquivo importado: {dest.name}", icon="✅")  # Exibe notificação de sucesso
+                try:
+                    load_into_session(dest)  # Carrega o CSV recém-salvo na sessão
+                    st.session_state["last_upload_sig"] = sig  # Registra assinatura para evitar reimportação repetida
+                    st.toast(f"Arquivo importado: {dest.name}", icon="✅")  # Exibe notificação de sucesso
+                except Exception as exc:  # Tratamento amigável de erro se o arquivo for inválido
+                    st.error(f"Erro ao carregar o arquivo CSV: {exc}")
 
         available_files: list[Path] = []  # Lista de arquivos CSV já disponíveis localmente
         if SAMPLE_CSV.exists():  # Se o CSV de exemplo existir
             available_files.append(SAMPLE_CSV)  # Adiciona o arquivo de exemplo à lista
         if IMPORT_DIR.exists():  # Se a pasta de importados existir
             available_files.extend(sorted(IMPORT_DIR.glob("*.csv"), reverse=True))  # Adiciona CSVs importados do mais recente ao mais antigo
+        if EXPORT_DIR.exists():  # Se a pasta de exportados existir
+            available_files.extend(sorted(EXPORT_DIR.glob("*.csv"), reverse=True))  # Adiciona CSVs exportados
 
         if available_files:  # Se houver ao menos um arquivo local disponível
             chosen = st.selectbox(  # Caixa de seleção para escolher um arquivo salvo
@@ -128,8 +133,11 @@ def render_sidebar() -> FilterSpec | None:  # Renderiza a barra lateral (upload,
                 format_func=lambda p: f"{p.parent.name}/{p.name}",  # Exibe no formato "pasta/arquivo.csv"
             )  # Fecha selectbox
             if st.button("Carregar arquivo selecionado", width="stretch"):  # Botão para confirmar o carregamento do arquivo escolhido
-                load_into_session(chosen)  # Carrega o arquivo escolhido na sessão
-                st.rerun()  # Recarrega a página para atualizar cabeçalho, filtros e abas
+                try:
+                    load_into_session(chosen)  # Carrega o arquivo escolhido na sessão
+                    st.rerun()  # Recarrega a página para atualizar cabeçalho, filtros e abas
+                except Exception as exc:  # Tratamento amigável caso haja erro de leitura
+                    st.error(f"Erro ao carregar o arquivo selecionado: {exc}")
 
         df: pd.DataFrame | None = st.session_state.get("df")  # Recupera o DataFrame ativo da sessão
         if df is None or df.empty:  # Se ainda não houver dados carregados

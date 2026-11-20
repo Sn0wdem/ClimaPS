@@ -5,11 +5,19 @@ import pandas as pd  # Manipulação de séries temporais e DataFrames
 import requests  # Biblioteca para fazer requisições HTTP à API Open-Meteo
 
 from climaps.core.data_loader import StationDataset  # Reaproveita a estrutura StationDataset usada pelo resto do app
+from climaps.core.analysis import (  # Índices meteorológicos e classificações
+    calculate_dew_point,
+    calculate_heat_index,
+    classify_air_quality,
+    classify_uv,
+    evaluate_storm_risk,
+)
 from climaps.ui_styles import format_datetime_friendly  # Formata datas/horas no padrão brasileiro amigável
 
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"  # Endpoint público de busca de cidades por nome (Open-Meteo)
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"  # Endpoint público de previsão e clima atual (Open-Meteo)
+AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"  # Endpoint de qualidade do ar e queimadas (Open-Meteo)
 
 WMO_CODES_PT = {  # Dicionário que traduz códigos meteorológicos padrão WMO (Organização Meteorológica Mundial) para português + emoji
     0: "☀️ Céu limpo",  # Código 0: céu limpo
@@ -59,50 +67,164 @@ def search_city(city_name: str, count: int = 10) -> list[dict[str, object]]:  # 
     return response.json().get("results", [])  # Converte a resposta JSON e retorna a lista "results" (ou lista vazia)
 
 
+def fetch_air_quality(latitude: float, longitude: float) -> dict[str, object]:
+    """Consulta dados de qualidade do ar e concentração de material particulado na Open-Meteo."""
+    try:
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": "european_aqi,us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone,dust",
+        }
+        response = requests.get(AIR_QUALITY_URL, params=params, timeout=10)
+        response.raise_for_status()
+        cur = response.json().get("current", {}) or {}
+        us_aqi = cur.get("us_aqi")
+        pm2_5 = cur.get("pm2_5")
+        return {
+            "us_aqi": us_aqi,
+            "european_aqi": cur.get("european_aqi"),
+            "pm2_5": pm2_5,
+            "pm10": cur.get("pm10"),
+            "co": cur.get("carbon_monoxide"),
+            "no2": cur.get("nitrogen_dioxide"),
+            "o3": cur.get("ozone"),
+            "dust": cur.get("dust"),
+            "info": classify_air_quality(us_aqi, pm2_5),
+        }
+    except Exception as exc:
+        return {
+            "us_aqi": None,
+            "european_aqi": None,
+            "pm2_5": None,
+            "pm10": None,
+            "co": None,
+            "no2": None,
+            "o3": None,
+            "dust": None,
+            "info": classify_air_quality(None, None),
+            "erro": str(exc),
+        }
+
+
 def _parse_point_payload(payload: dict[str, object], label: str, lat: float, lon: float) -> dict[str, object]:  # Extrai e padroniza o JSON de um ponto
     cur = payload.get("current", {}) or {}  # Obtém o bloco "current" do JSON (garantindo dicionário mesmo se vier None)
     daily = payload.get("daily", {}) or {}  # Obtém o bloco "daily" do JSON
+    hourly = payload.get("hourly", {}) or {}  # Obtém o bloco "hourly" do JSON
     sunrise_val = (daily.get("sunrise") or [""])[0] or ""  # Pega a primeira string de nascer do sol (se existir)
     sunset_val = (daily.get("sunset") or [""])[0] or ""  # Pega a primeira string de pôr do sol (se existir)
+
+    temp_c = cur.get("temperature_2m")
+    humid = cur.get("relative_humidity_2m")
+    press = cur.get("pressure_msl")
+    wind = cur.get("wind_speed_10m")
+    gust = cur.get("wind_gusts_10m")
+    rain = cur.get("precipitation")
+    uv_max = (daily.get("uv_index_max") or [None])[0]
+
+    dew_point = calculate_dew_point(temp_c, humid)
+    hi_c, hi_desc, hi_level = calculate_heat_index(temp_c, humid)
+    storm_risk = evaluate_storm_risk(press, humid, wind, gust, rain)
+    uv_info = classify_uv(uv_max)
+
+    # Previsão horária (próximas 48 horas)
+    hourly_times = hourly.get("time", [])
+    hourly_temps = hourly.get("temperature_2m", [])
+    hourly_probs = hourly.get("precipitation_probability", [])
+    hourly_rains = hourly.get("precipitation", [])
+    hourly_codes = hourly.get("weather_code", [])
+
+    forecast_hourly = []
+    if hourly_times and hourly_temps:
+        for t, temp, prob, p_rain, code in zip(
+            hourly_times[:48], hourly_temps[:48], hourly_probs[:48], hourly_rains[:48], hourly_codes[:48]
+        ):
+            forecast_hourly.append(
+                {
+                    "data_hora_raw": t,
+                    "hora_label": t[-5:],
+                    "temperatura_c": temp,
+                    "prob_chuva_pct": prob if prob is not None else 0,
+                    "chuva_mm": p_rain if p_rain is not None else 0.0,
+                    "condicao": weather_description(code),
+                }
+            )
+
+    # Previsão diária (próximos 14 dias)
+    daily_times = daily.get("time", [])
+    daily_tmax = daily.get("temperature_2m_max", [])
+    daily_tmin = daily.get("temperature_2m_min", [])
+    daily_probs = daily.get("precipitation_probability_max", [])
+    daily_sums = daily.get("precipitation_sum", [])
+    daily_codes = daily.get("weather_code", [])
+
+    forecast_daily = []
+    if daily_times and daily_tmax:
+        for d, tmax, tmin, prob, psum, code in zip(
+            daily_times[:14], daily_tmax[:14], daily_tmin[:14], daily_probs[:14], daily_sums[:14], daily_codes[:14]
+        ):
+            dia_str = f"{d[8:10]}/{d[5:7]}" if len(d) >= 10 else d
+            forecast_daily.append(
+                {
+                    "data_raw": d,
+                    "data_label": dia_str,
+                    "temp_max_c": tmax,
+                    "temp_min_c": tmin,
+                    "prob_chuva_pct": prob if prob is not None else 0,
+                    "chuva_mm": psum if psum is not None else 0.0,
+                    "condicao": weather_description(code),
+                }
+            )
 
     return {  # Retorna um dicionário plano com chaves em português para a interface
         "local": label,  # Nome de exibição do local
         "latitude": float(payload.get("latitude", lat)),  # Latitude retornada pela grade da API (ou a solicitada)
         "longitude": float(payload.get("longitude", lon)),  # Longitude retornada pela grade da API (ou a solicitada)
         "fuso": payload.get("timezone", "UTC"),  # Fuso horário local detectado pela API
+        "horario_raw": cur.get("time", ""),  # Horário ISO bruto
         "horario": format_datetime_friendly(cur.get("time", "")),  # Data/hora da medição atual formatada
-        "temperatura_c": cur.get("temperature_2m"),  # Temperatura a 2 metros de altura (°C)
+        "temperatura_c": temp_c,  # Temperatura a 2 metros de altura (°C)
         "sensacao_c": cur.get("apparent_temperature"),  # Sensação térmica (°C)
-        "umidade_pct": cur.get("relative_humidity_2m"),  # Umidade relativa do ar (%)
-        "precipitacao_mm": cur.get("precipitation"),  # Precipitação atual (mm)
+        "umidade_pct": humid,  # Umidade relativa do ar (%)
+        "precipitacao_mm": rain,  # Precipitação atual (mm)
         "nuvens_pct": cur.get("cloud_cover"),  # Cobertura de nuvens (%)
-        "pressao_hpa": cur.get("pressure_msl"),  # Pressão atmosférica ao nível do mar (hPa)
-        "vento_kmh": cur.get("wind_speed_10m"),  # Velocidade do vento a 10 metros (km/h)
-        "rajadas_kmh": cur.get("wind_gusts_10m"),  # Rajadas de vento a 10 metros (km/h)
+        "pressao_hpa": press,  # Pressão atmosférica ao nível do mar (hPa)
+        "vento_kmh": wind,  # Velocidade do vento a 10 metros (km/h)
+        "rajadas_kmh": gust,  # Rajadas de vento a 10 metros (km/h)
         "periodo": "Dia" if cur.get("is_day", 1) == 1 else "Noite",  # Converte flag is_day (1/0) para "Dia" ou "Noite"
-        "uv_max": (daily.get("uv_index_max") or [None])[0],  # Índice UV máximo previsto para o dia
+        "uv_max": uv_max,  # Índice UV máximo previsto para o dia
+        "uv_info": uv_info,  # Classificação UV (OMS)
         "nascer_sol": sunrise_val[-5:] if sunrise_val else "-",  # Extrai apenas "HH:MM" dos últimos 5 caracteres
         "por_sol": sunset_val[-5:] if sunset_val else "-",  # Extrai apenas "HH:MM" dos últimos 5 caracteres
         "condicao": weather_description(cur.get("weather_code")),  # Converte o código WMO para descrição com emoji
+        "ponto_orvalho_c": dew_point,  # Ponto de Orvalho em °C
+        "indice_calor_c": hi_c,  # Índice de calor em °C
+        "indice_calor_desc": hi_desc,  # Categoria de desconforto térmico
+        "indice_calor_nivel": hi_level,  # Nível de risco
+        "risco_tempestade": storm_risk,  # Avaliação de risco de tempestade
+        "forecast_hourly": forecast_hourly,  # Lista de previsão horária (até 48h)
+        "forecast_daily": forecast_daily,  # Lista de previsão diária (até 14 dias)
     }  # Fecha dicionário retornado
 
 
 def fetch_current_point(latitude: float, longitude: float, location_label: str) -> dict[str, object]:  # Consulta clima atual de uma coordenada
-    """Busca o clima ao vivo de qualquer coordenada do mundo."""  # Docstring da função
+    """Busca o clima ao vivo, previsão horária e diária e qualidade do ar de qualquer coordenada do mundo."""
     params = {  # Monta o dicionário de parâmetros da query string
         "latitude": latitude,  # Latitude alvo
         "longitude": longitude,  # Longitude alvo
         "current": (  # Lista de variáveis instantâneas desejadas separadas por vírgula
-            "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,"  # Temperatura, umidade, sensação, dia/noite
-            "precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_gusts_10m"  # Chuva, código WMO, nuvens, pressão, vento e rajadas
+            "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,"
+            "precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_gusts_10m"
         ),  # Fecha string de variáveis "current"
-        "daily": "uv_index_max,sunrise,sunset",  # Variáveis diárias adicionais (UV máximo, nascer e pôr do sol)
-        "forecast_days": 1,  # Solicita apenas o dia atual para resposta rápida
+        "hourly": "temperature_2m,precipitation_probability,precipitation,weather_code",  # Série horária de previsão
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,uv_index_max,sunrise,sunset,weather_code",  # Previsão diária
+        "forecast_days": 14,  # Previsão estendida de 14 dias
         "timezone": "auto",  # Ajusta automaticamente os horários para o fuso do ponto consultado
     }  # Fecha params
     response = requests.get(FORECAST_URL, params=params, timeout=12)  # Faz requisição GET com timeout de 12 segundos
     response.raise_for_status()  # Verifica se não houve erro HTTP
-    return _parse_point_payload(response.json(), location_label, latitude, longitude)  # Normaliza e retorna o payload JSON
+    data = _parse_point_payload(response.json(), location_label, latitude, longitude)  # Normaliza e retorna o payload JSON
+    data["air_quality"] = fetch_air_quality(latitude, longitude)  # Anexa medições de qualidade do ar e queimadas
+    return data
 
 
 def fetch_multiple_points(locations: list[tuple[str, float, float]]) -> list[dict[str, object]]:  # Consulta várias cidades de uma só vez

@@ -34,18 +34,29 @@ def _normalizar_chave(texto: str) -> str:  # Função auxiliar privada para padr
 
 def _localizar_cabecalho(linhas: list[str]) -> int:  # Função auxiliar para achar em qual linha começa a tabela no CSV
     for indice, linha in enumerate(linhas):  # Percorre todas as linhas do arquivo mantendo o índice (número da linha)
-        if linha.lstrip("\ufeff").startswith("Data Medicao;"):  # Remove possível caractere BOM (\ufeff) e checa se começa com "Data Medicao;"
-            return indice  # Retorna o índice da linha onde o cabeçalho da tabela foi encontrado
-    raise ValueError("Cabeçalho 'Data Medicao' não encontrado no arquivo.")  # Lança erro se o arquivo não tiver o cabeçalho esperado
+        limpa = linha.lstrip("\ufeff").strip().lower()  # Remove BOM UTF-8 e espaços nas pontas em minúsculas
+        # 1. Padrão original de arquivos de estações do INMET
+        if limpa.startswith("data medicao") or "data medicao;" in limpa or "data medicao," in limpa:
+            return indice
+        # 2. Padrão exportado pelo ClimaPS ou tabelas normalizadas com colunas principais
+        if "precipitacao_mm" in limpa and ("temp_max_c" in limpa or "data" in limpa):
+            return indice
+        # 3. Padrão com timestamp completo e variáveis climáticas
+        if "data_hora" in limpa and ("temp" in limpa or "precipitacao" in limpa or "chuva" in limpa):
+            return indice
+    raise ValueError(
+        "Cabeçalho de dados meteorológicos não encontrado no arquivo CSV. "
+        "O arquivo deve conter o padrão do INMET ('Data Medicao') ou o padrão exportado do ClimaPS ('data_hora', 'precipitacao_mm')."
+    )
 
 
-def load_station_csv(path: str | Path) -> StationDataset:  # Função principal que lê e normaliza um CSV do INMET
-    """Lê o CSV do INMET, separando metadados e observações horárias.
+def load_station_csv(path: str | Path) -> StationDataset:  # Função principal que lê e normaliza um CSV do INMET ou exportado
+    """Lê o CSV do INMET ou exportado pelo ClimaPS, separando metadados e observações horárias.
 
-    O arquivo tem metadados antes da tabela, usa ponto e vírgula como
-    separador e vírgula como separador decimal. A função trata esses três
-    detalhes e devolve nomes de colunas curtos, adequados ao código.
-    """  # Docstring explicando o funcionamento da função
+    Suporta tanto os arquivos brutos do INMET (com metadados no topo e colunas
+    longas) quanto arquivos exportados pela aplicação (com cabeçalho direto e
+    colunas normalizadas).
+    """
 
     source = Path(path).expanduser().resolve()  # Converte o caminho para Path, expande "~" se houver e resolve o caminho absoluto
     if not source.exists():  # Verifica se o arquivo realmente existe no disco
@@ -62,42 +73,84 @@ def load_station_csv(path: str | Path) -> StationDataset:  # Função principal 
             metadata[_normalizar_chave(chave)] = valor.strip()  # Normaliza a chave, limpa espaços do valor e salva no dicionário
 
     tabela = "\n".join(linhas[header_index:])  # Junta novamente em uma única string apenas as linhas da tabela (do cabeçalho em diante)
+    header_line = linhas[header_index]  # Linha com os nomes das colunas
+    sep = ";" if ";" in header_line else ","  # Detecta automaticamente separador ponto-e-vírgula ou vírgula
+    decimal = "," if sep == ";" else "."  # Define separador decimal conforme o delimitador de colunas
+
     df = pd.read_csv(  # Lê a tabela usando pandas.read_csv
         StringIO(tabela),  # Passa a string da tabela embrulhada em StringIO para simular um arquivo
-        sep=";",  # Define ponto e vírgula como separador de colunas (padrão INMET)
-        decimal=",",  # Define vírgula como separador decimal (padrão brasileiro)
-        na_values=["", "-9999", "-9999,0", "null", "NULL"],  # Lista de valores que devem ser interpretados como NaN (ausentes)
+        sep=sep,  # Separador detectado
+        decimal=decimal,  # Separador decimal apropriado
+        na_values=["", "-9999", "-9999,0", "null", "NULL", "NaN", "nan"],  # Valores interpretados como ausentes
     )  # Finaliza a leitura do CSV para o DataFrame
     df = df.dropna(axis=1, how="all")  # Remove colunas inteiramente vazias (comum pelo ";" extra no fim das linhas do INMET)
 
-    ausentes = [nome for nome in COLUNAS_INTERNAS if nome not in df.columns]  # Lista quaisquer colunas obrigatórias que faltem no CSV
-    if ausentes:  # Verifica se houve alguma coluna obrigatória ausente
-        raise ValueError(f"Colunas obrigatórias ausentes: {', '.join(ausentes)}")  # Interrompe com erro informando quais colunas faltaram
+    # Caso 1: CSV original do INMET com colunas longas
+    inmet_matches = [k for k in COLUNAS_INTERNAS if k in df.columns]
+    if len(inmet_matches) == len(COLUNAS_INTERNAS):
+        df = df.rename(columns=COLUNAS_INTERNAS)
 
-    df = df.rename(columns=COLUNAS_INTERNAS)[list(COLUNAS_INTERNAS.values())]  # Renomeia as colunas e mantém apenas as definidas em COLUNAS_INTERNAS
-    df["data"] = pd.to_datetime(df["data"], errors="coerce")  # Converte a coluna "data" para datetime (valores inválidos viram NaT)
-    hora_texto = (  # Inicia a formatação da coluna numérica de hora para string com 4 dígitos (ex.: 0 -> "0000")
-        df["hora"]  # Seleciona a coluna "hora"
-        .astype("Int64")  # Converte para inteiro anulável do pandas (aceita valores ausentes)
-        .astype(str)  # Converte os números para string
-        .str.replace("<NA>", "", regex=False)  # Substitui a representação de nulo "<NA>" por string vazia
-        .str.zfill(4)  # Preenche com zeros à esquerda até completar 4 caracteres (ex.: "100" -> "0100")
-    )  # Finaliza a construção da série hora_texto
-    df["data_hora"] = pd.to_datetime(  # Cria a coluna combinada de data e hora como Timestamp
-        df["data"].dt.strftime("%Y-%m-%d")  # Formata a data como "AAAA-MM-DD"
-        + " "  # Concatena um espaço separador
-        + hora_texto.str[:2]  # Pega os dois primeiros dígitos (horas)
-        + ":"  # Concatena dois-pontos
-        + hora_texto.str[2:],  # Pega os dois últimos dígitos (minutos)
-        errors="coerce",  # Converte falhas de parsing em NaT em vez de lançar exceção
-    )  # Finaliza a criação da coluna "data_hora"
+    # Caso 2: CSV exportado ou com nomes alternativos
+    alias_map = {
+        "chuva_mm": "precipitacao_mm",
+        "chuva": "precipitacao_mm",
+        "temperatura_c": "temp_max_c",
+        "temp_c": "temp_max_c",
+    }
+    for alt, standard in alias_map.items():
+        if alt in df.columns and standard not in df.columns:
+            df[standard] = df[alt]
 
-    numericas = ["precipitacao_mm", "temp_max_c", "temp_min_c"]  # Lista as colunas que devem ser numéricas
-    for coluna in numericas:  # Itera por cada coluna numérica
-        df[coluna] = pd.to_numeric(df[coluna], errors="coerce")  # Garante conversão para tipo numérico (erros viram NaN)
+    if "temp_min_c" not in df.columns and "temp_max_c" in df.columns:
+        df["temp_min_c"] = df["temp_max_c"]
 
+    # Garante que as 3 colunas numéricas essenciais existam
+    required = ["precipitacao_mm", "temp_max_c", "temp_min_c"]
+    for req in required:
+        if req not in df.columns:
+            raise ValueError(f"Coluna obrigatória ausente no CSV: '{req}'")
+        df[req] = pd.to_numeric(df[req], errors="coerce")
+
+    # Tratamento e montagem de data e hora
+    if "data_hora" in df.columns and df["data_hora"].notna().any():
+        df["data_hora"] = pd.to_datetime(df["data_hora"], errors="coerce")
+    elif "data" in df.columns and "hora" in df.columns:
+        df["data"] = pd.to_datetime(df["data"], errors="coerce")
+        hora_texto = (
+            df["hora"]
+            .astype("Int64")
+            .astype(str)
+            .str.replace("<NA>", "", regex=False)
+            .str.zfill(4)
+        )
+        df["data_hora"] = pd.to_datetime(
+            df["data"].dt.strftime("%Y-%m-%d")
+            + " "
+            + hora_texto.str[:2]
+            + ":"
+            + hora_texto.str[2:],
+            errors="coerce",
+        )
+    elif "data" in df.columns:
+        df["data_hora"] = pd.to_datetime(df["data"], errors="coerce")
+    else:
+        raise ValueError("O CSV precisa conter uma coluna de data/hora ('data_hora' ou 'data').")
+
+    df = df.dropna(subset=["data_hora"]).copy()  # Remove eventuais linhas com timestamp inválido
     df["hora_num"] = df["data_hora"].dt.hour  # Extrai a hora inteira (0 a 23) como coluna auxiliar para filtros
+    df["hora"] = df["hora_num"] * 100  # Mantém compatibilidade com hora inteira do padrão INMET (ex.: 1400)
     df["mes"] = df["data_hora"].dt.month  # Extrai o número do mês (1 a 12) para agrupamentos mensais
     df["dia"] = df["data_hora"].dt.floor("D")  # Trunca "data_hora" para meia-noite do dia (agrupamento diário)
-    df = df.sort_values("data_hora", na_position="last").reset_index(drop=True)  # Ordena cronologicamente (nulos no fim) e refaz o índice
+    df["data"] = df["dia"]  # Mantém compatibilidade com a coluna "data"
+
+    df = df.sort_values("data_hora", na_position="last").reset_index(drop=True)  # Ordena cronologicamente e refaz o índice
+
+    if not metadata:  # Se não houver metadados no topo do arquivo (ex.: CSV exportado diretamente)
+        clean_name = source.stem.replace("climaps_dados_", "").replace("dados_editados_", "").replace("_", " ").strip()
+        metadata = {
+            "nome": clean_name.upper() if clean_name else "ARQUIVO CSV",
+            "codigo_estacao": "EXPORT",
+            "fonte": "ClimaPS / Exportação",
+        }
+
     return StationDataset(metadata=metadata, data=df, source=source)  # Retorna o objeto StationDataset completo

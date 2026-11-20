@@ -1,14 +1,16 @@
 import pandas as pd  # Manipulação de DataFrames para tabela comparativa e mapa
 import plotly.express as px  # Criação do mapa mundial interativo de pontos (scatter_geo)
+import plotly.graph_objects as go  # Gráficos interativos customizados de previsão
 import streamlit as st  # Framework da interface web e cache
 
+from climaps.core.analysis import calculate_climate_anomaly  # Cruzamento de anomalia climática (Histórico vs Ao Vivo)
 from climaps.core.weather_api import (  # Importa funções de integração com a API Open-Meteo
     fetch_current_point,  # Busca clima atual por coordenada
     fetch_live_weather,  # Busca clima + previsão + histórico recente de 30 dias
     fetch_multiple_points,  # Busca clima atual de várias cidades em uma chamada
     search_city,  # Pesquisa cidades por nome
 )  # Fecha importação
-from climaps.ui_styles import NAVY, br_number, format_datetime_friendly  # Importa constantes visuais e formatadores
+from climaps.ui_styles import BLUE, NAVY, ORANGE, br_number, format_datetime_friendly  # Importa constantes visuais e formatadores
 
 
 WORLD_DEFAULTS = [  # Lista padrão de 10 cidades globais pré-carregadas para comparação inicial
@@ -131,6 +133,252 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
             f"☀️ UV máx.: {br_number(weather['uv_max'])} • "  # Índice UV máximo do dia
             f"🌅 Sol: {weather['nascer_sol']} – {weather['por_sol']}"  # Horários de nascer e pôr do sol
         )  # Fecha st.caption
+
+        # 1. Alerta de Risco de Tempestade e Barômetro
+        storm_risk = weather.get("risco_tempestade") or {}
+        if storm_risk:
+            st.markdown(
+                f"""
+<div class="storm-banner {storm_risk.get('classe', 'storm-low')}">
+    <span style="font-size:1.3rem;">{storm_risk.get('icone', '🟢')}</span>
+    <div>
+        <b>{storm_risk.get('nivel', 'Condição Atmosférica')}:</b> {storm_risk.get('detalhe', '')}
+    </div>
+</div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # 2. Índices Bioclimáticos & Desconforto Térmico
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            hi_val = weather.get("indice_calor_c")
+            hi_desc = weather.get("indice_calor_desc", "Normal")
+            st.metric(
+                "🔥 Índice de Calor (Heat Index)",
+                f"{br_number(hi_val)} °C" if hi_val is not None else "-",
+                delta=hi_desc,
+                delta_color="off" if (hi_val is None or hi_val < 27) else "inverse",
+                help="Combinação de temperatura e umidade relativa que reflete a temperatura aparente sentida pelo corpo humano (NOAA/Steadman).",
+            )
+        with b2:
+            dew_val = weather.get("ponto_orvalho_c")
+            dew_desc = "Muito Abafado / Tropical" if dew_val and dew_val >= 21 else ("Confortável" if dew_val and dew_val >= 10 else "Seco")
+            st.metric(
+                "💧 Ponto de Orvalho (Dew Point)",
+                f"{br_number(dew_val)} °C" if dew_val is not None else "-",
+                delta=dew_desc,
+                delta_color="off",
+                help="Temperatura em que o vapor d'água condensa. Valores acima de 20 °C provocam forte sensação de ar opressivo e desconforto térmico.",
+            )
+        with b3:
+            uv_val = weather.get("uv_max")
+            uv_info = weather.get("uv_info") or {}
+            st.metric(
+                "☀️ Radiação UV Máxima",
+                f"UV {br_number(uv_val)}" if uv_val is not None else "-",
+                delta=f"{uv_info.get('status', 'Índice')}",
+                delta_color="off",
+                help="Índice de radiação ultravioleta diária máxima conforme escala da OMS.",
+            )
+
+        # 3. Análise de Anomalias Climáticas (Histórico vs. Ao Vivo)
+        hist_df = st.session_state.get("df")
+        anomaly = calculate_climate_anomaly(hist_df, weather)
+        if anomaly is not None:
+            delta_t = anomaly["delta_temp"]
+            delta_r = anomaly["delta_rain"]
+            sinal_t = "+" if delta_t >= 0 else ""
+            badge_cor = "#EF4444" if delta_t > 0.5 else ("#3B82F6" if delta_t < -0.5 else "#10B981")
+            st.markdown(
+                f"""
+<div class="anomaly-card">
+    <div class="anomaly-card-title">
+        <span>📊 Anomalia Climática Histórica ({anomaly['mes_nome']})</span>
+        <span class="kpi-badge" style="background-color:rgba({ '239,68,68,0.2' if delta_t > 0.5 else ('59,130,246,0.2' if delta_t < -0.5 else '16,185,129,0.2') }); color:{badge_cor};">
+            { '🔺' if delta_t >= 0 else '🔻' } {sinal_t}{delta_t:.1f} °C vs. histórico
+        </span>
+    </div>
+    <p class="anomaly-card-desc">
+        {anomaly['summary_text']}<br>
+        <b>Chuva observada hoje:</b> {br_number(anomaly['curr_rain'])} mm • <b>Média diária histórica de {anomaly['mes_nome']}:</b> {br_number(anomaly['hist_rain_daily_avg'])} mm ({'+' if delta_r >= 0 else ''}{delta_r:.1f} mm).
+    </p>
+</div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            with st.container(border=True):
+                st.caption(
+                    "💡 **Análise de Anomalia Histórica:** Carregue um CSV de estação do INMET na barra lateral ou clique no botão **📥 Carregar 30 dias nas abas** abaixo para cruzar a temperatura/chuva de hoje com a média histórica dos anos anteriores."
+                )
+
+        # 4. Qualidade do Ar e Monitoramento de Queimadas / Fumaça (Open-Meteo Air Quality)
+        air_q = weather.get("air_quality") or {}
+        if air_q:
+            info = air_q.get("info") or {}
+            with st.expander("🍃 Qualidade do Ar & Monitoramento de Queimadas (Open-Meteo)", expanded=True):
+                aq1, aq2, aq3, aq4 = st.columns(4)
+                us_aqi = air_q.get("us_aqi")
+                pm25 = air_q.get("pm2_5")
+                pm10 = air_q.get("pm10")
+                co = air_q.get("co")
+
+                aq1.metric("Índice US AQI", f"{us_aqi}" if us_aqi is not None else "-", info.get("status", "Geral"), delta_color="off")
+                aq2.metric(
+                    "PM2.5 (Fumaça fina)",
+                    f"{br_number(pm25)} µg/m³" if pm25 is not None else "-",
+                    "Queimadas / Fuligem",
+                    delta_color="off",
+                    help="Partículas inaláveis finas (< 2.5 µm), principal indicador de fumaça de queimadas e incêndios florestais na Amazônia.",
+                )
+                aq3.metric("PM10 (Poeira e aerossóis)", f"{br_number(pm10)} µg/m³" if pm10 is not None else "-", "Partículas inaláveis", delta_color="off")
+                aq4.metric("Monóxido de Carbono (CO)", f"{br_number(co, 0)} µg/m³" if co is not None else "-", "Gases de combustão", delta_color="off")
+
+                st.caption(f"{info.get('icone', 'ℹ️')} **Diagnóstico para a saúde:** {info.get('recomendacao', '')}")
+
+        # 5. Previsão Horária e Estendida (7 a 14 dias)
+        f_hourly = weather.get("forecast_hourly") or []
+        f_daily = weather.get("forecast_daily") or []
+
+        if f_hourly or f_daily:
+            with st.container(border=True):
+                st.markdown("#### 📈 Previsão Meteorológica Interativa")
+                visao_prev = st.radio(
+                    "Escopo da previsão",
+                    ["⏱️ Próximas 24 horas (Horária)", "📅 Próximos 7 dias", "🗓️ Próximos 14 dias (Estendida)"],
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key=f"radio_visao_prev_{target_label}",
+                )
+
+                is_dark = st.session_state.get("dark_mode", True)
+                template = "plotly_dark" if is_dark else "plotly_white"
+
+                if visao_prev.startswith("⏱️") and f_hourly:
+                    df_h = pd.DataFrame(f_hourly[:24])
+                    if not df_h.empty:
+                        fig_prev = go.Figure()
+
+                        # Barras de probabilidade de chuva no eixo secundário Y2
+                        fig_prev.add_trace(
+                            go.Bar(
+                                x=df_h["hora_label"],
+                                y=df_h["prob_chuva_pct"],
+                                name="Prob. de Chuva (%)",
+                                yaxis="y2",
+                                marker_color="rgba(56, 189, 248, 0.35)" if is_dark else "rgba(40, 120, 181, 0.35)",
+                                hovertemplate="<b>Hora:</b> %{x}<br><b>Prob. de Chuva:</b> %{y}%<extra></extra>",
+                            )
+                        )
+
+                        # Linha de temperatura no eixo principal Y1
+                        fig_prev.add_trace(
+                            go.Scatter(
+                                x=df_h["hora_label"],
+                                y=df_h["temperatura_c"],
+                                name="Temperatura (°C)",
+                                mode="lines+markers",
+                                line=dict(color=ORANGE, width=3, shape="spline"),
+                                marker=dict(size=6, color=ORANGE),
+                                hovertemplate="<b>Hora:</b> %{x}<br><b>Temperatura:</b> %{y:.1f} °C<extra></extra>",
+                            )
+                        )
+
+                        fig_prev.update_layout(
+                            template=template,
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            height=340,
+                            margin=dict(t=35, b=25, l=40, r=40),
+                            hovermode="x unified",
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            xaxis=dict(title="Horário local"),
+                            yaxis=dict(
+                                title=dict(text="Temperatura (°C)", font=dict(color=ORANGE)),
+                                tickfont=dict(color=ORANGE),
+                                showgrid=True,
+                            ),
+                            yaxis2=dict(
+                                title=dict(text="Probabilidade de Chuva (%)", font=dict(color="#38BDF8")),
+                                tickfont=dict(color="#38BDF8"),
+                                overlaying="y",
+                                side="right",
+                                range=[0, 100],
+                                showgrid=False,
+                            ),
+                        )
+                        st.plotly_chart(fig_prev, width="stretch")
+
+                elif f_daily:
+                    dias_limite = 7 if "7 dias" in visao_prev else 14
+                    df_d = pd.DataFrame(f_daily[:dias_limite])
+                    if not df_d.empty:
+                        fig_d = go.Figure()
+
+                        # Chuva prevista em mm no eixo secundário Y2
+                        fig_d.add_trace(
+                            go.Bar(
+                                x=df_d["data_label"],
+                                y=df_d["chuva_mm"],
+                                name="Chuva Prevista (mm)",
+                                yaxis="y2",
+                                marker_color="rgba(56, 189, 248, 0.45)" if is_dark else "rgba(40, 120, 181, 0.40)",
+                                hovertemplate="<b>Data:</b> %{x}<br><b>Chuva prevista:</b> %{y:.1f} mm<extra></extra>",
+                            )
+                        )
+
+                        # Curva de Temperatura Máxima
+                        fig_d.add_trace(
+                            go.Scatter(
+                                x=df_d["data_label"],
+                                y=df_d["temp_max_c"],
+                                name="Temp. Máxima (°C)",
+                                mode="lines+markers",
+                                line=dict(color=ORANGE, width=3, shape="spline"),
+                                marker=dict(size=7, color=ORANGE),
+                                hovertemplate="<b>Temp. Máx.:</b> %{y:.1f} °C<extra></extra>",
+                            )
+                        )
+
+                        # Curva de Temperatura Mínima
+                        fig_d.add_trace(
+                            go.Scatter(
+                                x=df_d["data_label"],
+                                y=df_d["temp_min_c"],
+                                name="Temp. Mínima (°C)",
+                                mode="lines+markers",
+                                line=dict(color="#38BDF8" if is_dark else BLUE, width=2.5, shape="spline"),
+                                marker=dict(size=6),
+                                fill="tonexty",
+                                fillcolor="rgba(56, 189, 248, 0.15)" if is_dark else "rgba(40, 120, 181, 0.12)",
+                                hovertemplate="<b>Temp. Mín.:</b> %{y:.1f} °C<extra></extra>",
+                            )
+                        )
+
+                        fig_d.update_layout(
+                            template=template,
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            height=350,
+                            margin=dict(t=35, b=25, l=40, r=40),
+                            hovermode="x unified",
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            xaxis=dict(title="Dia"),
+                            yaxis=dict(
+                                title=dict(text="Temperatura (°C)", font=dict(color=ORANGE)),
+                                tickfont=dict(color=ORANGE),
+                                showgrid=True,
+                            ),
+                            yaxis2=dict(
+                                title=dict(text="Chuva Acumulada (mm)", font=dict(color="#38BDF8")),
+                                tickfont=dict(color="#38BDF8"),
+                                overlaying="y",
+                                side="right",
+                                showgrid=False,
+                            ),
+                        )
+                        st.plotly_chart(fig_d, width="stretch")
 
     if "world_pins" not in st.session_state:  # Na primeira execução da sessão, inicializa os pontos fixados no mapa
         try:  # Tenta carregar as 10 cidades globais padrão
@@ -314,26 +562,31 @@ Sensação térmica: <b>{br_number(weather['sensacao_c'])} °C</b> <!-- Valor da
         if "horario" in table_display.columns:
             table_display["horario"] = table_display["horario"].apply(format_datetime_friendly)
 
+        cols_to_show = [
+            "local",
+            "condicao",
+            "temperatura_c",
+            "sensacao_c",
+            "indice_calor_c",
+            "ponto_orvalho_c",
+            "umidade_pct",
+            "vento_kmh",
+            "pressao_hpa",
+            "precipitacao_mm",
+            "horario",
+        ]
+        available_cols = [c for c in cols_to_show if c in table_display.columns]
+
         st.dataframe(  # Exibe tabela comparativa completa dos locais
-            table_display[  # Seleciona e ordena as colunas mostradas
-                [
-                    "local",  # Nome do local
-                    "condicao",  # Condição atual
-                    "temperatura_c",  # Temperatura atual
-                    "sensacao_c",  # Sensação térmica
-                    "umidade_pct",  # Umidade relativa
-                    "vento_kmh",  # Velocidade do vento
-                    "pressao_hpa",  # Pressão atmosférica
-                    "precipitacao_mm",  # Chuva atual
-                    "horario",  # Hora local da medição
-                ]
-            ],  # Fecha seleção de colunas
+            table_display[available_cols],  # Seleciona e ordena as colunas mostradas
             hide_index=True,  # Oculta o índice do DataFrame
             column_config={  # Configura rótulos e formatos numéricos
                 "local": "Local",  # Rótulo Local
                 "condicao": "Condição",  # Rótulo Condição
                 "temperatura_c": st.column_config.NumberColumn("Temp. (°C)", format="%.1f"),  # 1 casa decimal
                 "sensacao_c": st.column_config.NumberColumn("Sensação (°C)", format="%.1f"),  # 1 casa decimal
+                "indice_calor_c": st.column_config.NumberColumn("Índ. Calor (°C)", format="%.1f"),  # 1 casa decimal
+                "ponto_orvalho_c": st.column_config.NumberColumn("Orvalho (°C)", format="%.1f"),  # 1 casa decimal
                 "umidade_pct": st.column_config.NumberColumn("Umidade (%)", format="%d"),  # Inteiro
                 "vento_kmh": st.column_config.NumberColumn("Vento (km/h)", format="%.1f"),  # 1 casa decimal
                 "pressao_hpa": st.column_config.NumberColumn("Pressão (hPa)", format="%.0f"),  # Inteiro arredondado

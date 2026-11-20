@@ -1,6 +1,7 @@
 from __future__ import annotations  # Habilita avaliação adiada de type hints
 
 from dataclasses import dataclass  # Importa dataclass para definir especificações de filtro
+import math  # Operações matemáticas para índices meteorológicos (logaritmo, raiz quadrada)
 
 import numpy as np  # Importa NumPy para constantes/cálculos numéricos (como np.inf e np.nan)
 import pandas as pd  # Importa pandas para análise e agregação dos dados
@@ -136,3 +137,276 @@ def generate_insights(df: pd.DataFrame) -> list[str]:  # Gera frases automática
 def correlation_matrix(df: pd.DataFrame) -> pd.DataFrame:  # Calcula a matriz de correlação de Pearson entre as variáveis
     cols = ["precipitacao_mm", "temp_max_c", "temp_min_c"]  # Seleciona as três variáveis meteorológicas
     return df[cols].corr().replace([np.inf, -np.inf], np.nan)  # Calcula .corr() e troca eventuais infinitos por NaN
+
+
+def calculate_dew_point(temp_c: float | int | None, humidity_pct: float | int | None) -> float | None:
+    """Calcula o Ponto de Orvalho (Dew Point) usando a aproximação de Magnus-Tetens."""
+    if temp_c is None or humidity_pct is None:
+        return None
+    try:
+        t = float(temp_c)
+        rh = max(1.0, min(100.0, float(humidity_pct)))
+        a, b = 17.27, 237.7
+        alpha = ((a * t) / (b + t)) + math.log(rh / 100.0)
+        return round((b * alpha) / (a - alpha), 1)
+    except Exception:
+        return None
+
+
+def calculate_heat_index(temp_c: float | int | None, humidity_pct: float | int | None) -> tuple[float | None, str, str]:
+    """Calcula o Índice de Calor (Heat Index) e classifica o desconforto térmico (NOAA / Steadman).
+
+    Retorna tupla: (indice_c, descricao_categoria, nivel_alerta).
+    """
+    if temp_c is None or humidity_pct is None:
+        return None, "Indisponível", "baixo"
+    try:
+        t_c = float(temp_c)
+        rh = max(1.0, min(100.0, float(humidity_pct)))
+        t_f = t_c * 9.0 / 5.0 + 32.0
+
+        if t_f < 80.0:
+            hi_f = 0.5 * (t_f + 61.0 + ((t_f - 68.0) * 1.2) + (rh * 0.094))
+        else:
+            hi_f = (
+                -42.379
+                + 2.04901523 * t_f
+                + 10.14333127 * rh
+                - 0.22475541 * t_f * rh
+                - 0.00683783 * (t_f**2)
+                - 0.05481717 * (rh**2)
+                + 0.00122874 * (t_f**2) * rh
+                + 0.00085282 * t_f * (rh**2)
+                - 0.00000199 * (t_f**2) * (rh**2)
+            )
+            if rh < 13.0 and 80.0 <= t_f <= 112.0:
+                hi_f -= ((13.0 - rh) / 4.0) * math.sqrt((17.0 - abs(t_f - 95.0)) / 17.0)
+            elif rh > 85.0 and 80.0 <= t_f <= 87.0:
+                hi_f += ((rh - 85.0) / 10.0) * ((87.0 - t_f) / 5.0)
+
+        hi_c = round((hi_f - 32.0) * 5.0 / 9.0, 1)
+        if hi_c < 27.0:
+            cat, level = "Normal / Confortável", "baixo"
+        elif hi_c < 32.0:
+            cat, level = "Atenção (Fadiga com exposição)", "cuidado"
+        elif hi_c < 41.0:
+            cat, level = "Cuidado Extremo (Cãibras/Insolação)", "cuidado_extremo"
+        elif hi_c < 54.0:
+            cat, level = "Perigo (Insolação Provável)", "perigo"
+        else:
+            cat, level = "Perigo Extremo (Alto Risco Térmico)", "perigo_extremo"
+
+        return hi_c, cat, level
+    except Exception:
+        return None, "Indisponível", "baixo"
+
+
+def evaluate_storm_risk(
+    pressao_hpa: float | int | None,
+    umidade_pct: float | int | None,
+    vento_kmh: float | int | None,
+    rajadas_kmh: float | int | None,
+    precipitacao_mm: float | int | None = 0.0,
+) -> dict[str, str]:
+    """Avalia o risco de tempestade com base em queda barométrica, umidade e vento."""
+    if pressao_hpa is None:
+        return {
+            "nivel": "Atmosfera Estável",
+            "cor": "#10B981",
+            "classe": "storm-low",
+            "icone": "🟢",
+            "detalhe": "Sem leitura barométrica no momento.",
+        }
+
+    try:
+        p = float(pressao_hpa)
+        rh = float(umidade_pct or 0.0)
+        v = float(vento_kmh or 0.0)
+        gust = float(rajadas_kmh or v)
+        rain = float(precipitacao_mm or 0.0)
+
+        # Queda barométrica crítica (< 1005 hPa) + umidade alta + vento forte ou chuva
+        if (p < 1005.0 and rh >= 75.0 and (gust >= 30.0 or v >= 20.0 or rain > 0.5)) or (p < 1002.0 and gust >= 25.0):
+            return {
+                "nivel": "Alto Risco de Tempestade",
+                "cor": "#EF4444",
+                "classe": "storm-high",
+                "icone": "⚡",
+                "detalhe": f"Queda barométrica crítica ({p:.0f} hPa) combinada com umidade elevada ({rh:.0f}%) e rajadas ({gust:.1f} km/h). Risco de temporal severo.",
+            }
+        elif p < 1008.0 and (rh >= 70.0 or gust >= 35.0):
+            return {
+                "nivel": "Alerta de Instabilidade",
+                "cor": "#F59E0B",
+                "classe": "storm-med",
+                "icone": "⚠️",
+                "detalhe": f"Baixa pressão barométrica ({p:.0f} hPa) indicando instabilidade atmosférica e potencial para pancadas de chuva.",
+            }
+        elif gust >= 45.0:
+            return {
+                "nivel": "Alerta de Rajadas Intensas",
+                "cor": "#F59E0B",
+                "classe": "storm-med",
+                "icone": "💨",
+                "detalhe": f"Rajadas intensas de vento ({gust:.1f} km/h) detectadas nas proximidades.",
+            }
+        else:
+            return {
+                "nivel": "Atmosfera Estável",
+                "cor": "#10B981",
+                "classe": "storm-low",
+                "icone": "🟢",
+                "detalhe": f"Pressão atmosférica estável ({p:.0f} hPa) e sem indicativo de tempestades severas imediatas.",
+            }
+    except Exception:
+        return {
+            "nivel": "Atmosfera Estável",
+            "cor": "#10B981",
+            "classe": "storm-low",
+            "icone": "🟢",
+            "detalhe": "Condições atmosféricas regulares.",
+        }
+
+
+def calculate_climate_anomaly(
+    df: pd.DataFrame | None,
+    current_weather: dict[str, object] | None,
+) -> dict[str, object] | None:
+    """Calcula anomalias climáticas comparando a medição ao vivo com a média histórica daquele mês/dia no dataset."""
+    if df is None or df.empty or current_weather is None:
+        return None
+
+    raw_dt = current_weather.get("horario_raw") or current_weather.get("horario")
+    try:
+        now_dt = pd.to_datetime(raw_dt)
+        mes_atual = int(now_dt.month)
+    except Exception:
+        mes_atual = 11
+
+    meses_extenso = {
+        1: "janeiro", 2: "fevereiro", 3: "março", 4: "abril", 5: "maio", 6: "junho",
+        7: "julho", 8: "agosto", 9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro",
+    }
+    nome_mes = meses_extenso.get(mes_atual, str(mes_atual))
+
+    df_mes = df[df["mes"] == mes_atual] if "mes" in df.columns else df
+    if df_mes.empty:
+        df_mes = df
+
+    hist_max = float(df_mes["temp_max_c"].dropna().mean()) if df_mes["temp_max_c"].notna().any() else 0.0
+    hist_min = float(df_mes["temp_min_c"].dropna().mean()) if df_mes["temp_min_c"].notna().any() else 0.0
+    hist_temp_mean = (hist_max + hist_min) / 2.0 if (hist_max and hist_min) else (hist_max or hist_min)
+
+    days_count = max(1, df_mes["dia"].nunique()) if "dia" in df_mes.columns else 30
+    total_rain = float(df_mes["precipitacao_mm"].dropna().sum()) if df_mes["precipitacao_mm"].notna().any() else 0.0
+    hist_rain_daily_avg = total_rain / days_count
+
+    curr_temp = current_weather.get("temperatura_c")
+    curr_rain = float(current_weather.get("precipitacao_mm") or 0.0)
+    local = str(current_weather.get("local", "O local"))
+
+    if curr_temp is None or not hist_temp_mean:
+        return None
+
+    temp_val = float(curr_temp)
+    delta_temp = temp_val - hist_temp_mean
+    delta_rain = curr_rain - hist_rain_daily_avg
+
+    sinal_temp = "+" if delta_temp >= 0 else ""
+    adjetivo = "acima da" if delta_temp >= 0 else "abaixo da"
+
+    summary_text = (
+        f"{local} está {sinal_temp}{delta_temp:.1f} °C {adjetivo} média histórica para {nome_mes} "
+        f"({temp_val:.1f} °C atual vs. {hist_temp_mean:.1f} °C média histórica)."
+    )
+
+    return {
+        "has_history": True,
+        "mes_num": mes_atual,
+        "mes_nome": nome_mes.capitalize(),
+        "hist_temp_mean": round(hist_temp_mean, 1),
+        "hist_max_mean": round(hist_max, 1),
+        "hist_min_mean": round(hist_min, 1),
+        "hist_rain_daily_avg": round(hist_rain_daily_avg, 1),
+        "curr_temp": round(temp_val, 1),
+        "curr_rain": round(curr_rain, 1),
+        "delta_temp": round(delta_temp, 1),
+        "delta_rain": round(delta_rain, 1),
+        "summary_text": summary_text,
+        "status": "quente" if delta_temp > 0.5 else ("frio" if delta_temp < -0.5 else "neutro"),
+    }
+
+
+def classify_air_quality(us_aqi: float | int | None, pm2_5: float | int | None) -> dict[str, str]:
+    """Classifica a qualidade do ar segundo o padrão US AQI e PM2.5 (essencial para fumaça/queimadas)."""
+    if us_aqi is None and pm2_5 is None:
+        return {
+            "status": "Sem Dados",
+            "cor": "#94A3B8",
+            "badge_class": "aqi-unknown",
+            "icone": "⚪",
+            "recomendacao": "Dados de qualidade do ar não disponíveis para esta coordenada.",
+        }
+
+    val = float(us_aqi) if us_aqi is not None else (float(pm2_5) * 3.0 if pm2_5 is not None else 0.0)
+
+    if val <= 50:
+        return {
+            "status": "Boa",
+            "cor": "#10B981",
+            "badge_class": "aqi-good",
+            "icone": "🟢",
+            "recomendacao": "Qualidade do ar satisfatória; sem risco à saúde da população.",
+        }
+    elif val <= 100:
+        return {
+            "status": "Moderada",
+            "cor": "#F59E0B",
+            "badge_class": "aqi-moderate",
+            "icone": "🟡",
+            "recomendacao": "Qualidade aceitável. Indivíduos hipersensíveis a partículas devem monitorar sintomas.",
+        }
+    elif val <= 150:
+        return {
+            "status": "Alerta p/ Grupos Sensíveis",
+            "cor": "#F97316",
+            "badge_class": "aqi-sensitive",
+            "icone": "🟠",
+            "recomendacao": "Fumaça / material particulado perceptível. Crianças, idosos e pessoas com asma devem evitar esforço externo prolongado.",
+        }
+    elif val <= 200:
+        return {
+            "status": "Não Saudável",
+            "cor": "#EF4444",
+            "badge_class": "aqi-unhealthy",
+            "icone": "🔴",
+            "recomendacao": "Fumaça densa de queimadas. Toda a população pode sofrer irritação ocular e respiratória. Evite exercícios ao ar livre.",
+        }
+    else:
+        return {
+            "status": "Muito Prejudicial / Crítico",
+            "cor": "#7C3AED",
+            "badge_class": "aqi-hazardous",
+            "icone": "🟣",
+            "recomendacao": "Alerta de emergência de saúde por poluição severa. Permaneça em ambientes fechados com purificadores ou use máscaras de proteção.",
+        }
+
+
+def classify_uv(uv_index: float | int | None) -> dict[str, str]:
+    """Classifica o índice UV de acordo com as normas da OMS (Organização Mundial da Saúde)."""
+    if uv_index is None:
+        return {"status": "Indisponível", "cor": "#94A3B8", "icone": "⚪", "recomendacao": "Sem leitura UV."}
+    try:
+        val = float(uv_index)
+        if val < 3.0:
+            return {"status": "Baixo", "cor": "#10B981", "icone": "🟢", "recomendacao": "Baixo risco. Proteção mínima."}
+        elif val < 6.0:
+            return {"status": "Moderado", "cor": "#F59E0B", "icone": "🟡", "recomendacao": "Use protetor solar e óculos de sol."}
+        elif val < 8.0:
+            return {"status": "Alto", "cor": "#F97316", "icone": "🟠", "recomendacao": "Proteção necessária: filtro solar FPS 30+, boné e sombra ao meio-dia."}
+        elif val < 11.0:
+            return {"status": "Muito Alto", "cor": "#EF4444", "icone": "🔴", "recomendacao": "Risco elevado de queimaduras. Evite exposição direta entre 10h e 16h."}
+        else:
+            return {"status": "Extremo", "cor": "#7C3AED", "icone": "🟣", "recomendacao": "Risco extremo à pele e aos olhos em poucos minutos. Procure sombra."}
+    except Exception:
+        return {"status": "Indisponível", "cor": "#94A3B8", "icone": "⚪", "recomendacao": "Sem leitura UV."}

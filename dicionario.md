@@ -121,14 +121,21 @@ O projeto adota uma organização modular para separar **dados**, **cálculos** 
 - **`quality_report()`**: gera o diagnóstico de qualidade da base (buracos na série horária, duplicados, nulos, outliers e erros físicos).
 - **`generate_insights()`**: escreve frases automáticas destacando o mês mais chuvoso, o mês mais quente, o maior pico horário de chuva e a quantidade de dias secos.
 - **`correlation_matrix()`**: calcula a matriz de correlação 3×3 entre chuva, temperatura máxima e mínima.
+- **`calculate_dew_point()`**: calcula o Ponto de Orvalho (*Dew Point*) pela fórmula de Magnus-Tetens, medindo o abafamento e a umidade real do ar.
+- **`calculate_heat_index()`**: calcula o Índice de Calor (*Heat Index*) de Steadman/NOAA e classifica o risco de desconforto térmico, fadiga ou insolação.
+- **`evaluate_storm_risk()`**: gatilho barométrico que detecta queda brusca de pressão (< 1005 hPa) associada a alta umidade e rajadas de vento, emitindo alertas visuais de tempestade.
+- **`calculate_climate_anomaly()`**: cruza os dados ao vivo da Open-Meteo com a série histórica do INMET carregada na sessão, medindo o desvio de temperatura e chuva frente à média do mês.
+- **`classify_air_quality()`**: classifica o índice de qualidade do ar (*US AQI*) e material particulado fino (*PM2.5* e *PM10*), com foco no monitoramento de fumaça de queimadas.
+- **`classify_uv()`**: categoriza a radiação ultravioleta diária de acordo com as faixas de proteção da OMS.
 
 ### 📂 `climaps/core/weather_api.py` — Conexão com a Open-Meteo
-- **`GEOCODING_URL` / `FORECAST_URL`**: endereços públicos da API Open-Meteo.
+- **`GEOCODING_URL` / `FORECAST_URL` / `AIR_QUALITY_URL`**: endereços públicos das APIs de previsão, geocodificação e qualidade do ar da Open-Meteo.
 - **`WMO_CODES_PT`**: traduz códigos meteorológicos internacionais (WMO) para descrições com emojis em português.
 - **`LiveWeatherBundle`**: estrutura que reúne condições atuais, previsão diária e série horária recente (`StationDataset`).
 - **`weather_description()`**: converte um código numérico WMO em texto amigável.
 - **`search_city()`**: busca cidades pelo nome e retorna opções com latitude e longitude.
-- **`_parse_point_payload()`**: organiza a resposta JSON da API em um dicionário limpo em português.
+- **`fetch_air_quality()`**: consulta concentrações de PM2.5, PM10, CO, NO2 e ozônio na API de qualidade do ar.
+- **`_parse_point_payload()`**: organiza a resposta JSON da API em um dicionário padronizado em português, calculando índices derivados e estruturando as previsões horária e diária.
 - **`fetch_current_point()` / `fetch_multiple_points()`**: buscam o clima atual de um local ou de várias cidades em lote.
 - **`fetch_live_weather()`**: baixa clima atual, previsão de 7 dias e últimos 30 dias horários prontos para análise nas abas.
 
@@ -147,4 +154,4 @@ O projeto adota uma organização modular para separar **dados**, **cálculos** 
 - **`sql_value()` / `build_sql_script()`**: transformam a tabela em comandos SQL (`DROP TABLE`, `CREATE TABLE` e `INSERT INTO`).
 - **`load_into_session()`**: grava o dataset carregado na memória da sessão (`st.session_state`).
 - **`render_sidebar()` / `render_export_tab()` / `main()`**: organizam barra lateral, exportação e criação das 6 abas principais.
-- **`StationAnalysisTests`**: suíte de 7 testes automatizados que validam metadados, integridade das 8.760 horas, nulos, KPIs, mês mais chuvoso (março), filtros e regras de qualidade.
+- **`StationAnalysisTests` e `FormattingAndUiTests`**: suíte completa de 14 testes automatizados que validam metadados, integridade das 8.760 horas, nulos, KPIs, mês mais chuvoso (março), filtros, regras de qualidade, formatação de datas, ponto de orvalho, índice de calor, risco de tempestade e anomalias climáticas.

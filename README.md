@@ -43,19 +43,21 @@ E se você curte dados de verdade, importe séries horárias do **INMET**, filtr
 <tr>
 <td width="50%" valign="top">
 
-### 🌍 AO VIVO
+### 🌍 AO VIVO & METEOROLOGIA AVANÇADA
 - Clima de qualquer **cidade, país ou coordenada** (`Latitude` / `Longitude`)
-- **Mapa global** interativo (Plotly)
-- **Radar animado** (Windy.com)
-- Pódio de extremos e tabela comparativa
+- **Alertas de Tempestade**: monitoramento barométrico (< 1005 hPa), umidade e rajadas
+- **Índices Bioclimáticos**: Ponto de Orvalho (*Dew Point*) e Índice de Calor (*Heat Index*)
+- **Qualidade do Ar & Queimadas**: monitoramento de PM2.5, PM10, CO e AQI (Open-Meteo)
+- **Mapa global** interativo (Plotly) e **radar animado ao vivo** (Windy.com)
 
 </td>
 <td width="50%" valign="top">
 
-### 🔮 PREVISÃO & DUELO
-- **7 dias** em cards + gráfico de temperatura e chuva
-- **Duelo de cidades**: compare ao vivo e na curva térmica
-- Carregue os **últimos 30 dias** de qualquer cidade direto nas abas de análise
+### 🔮 PREVISÃO & ANOMALIAS
+- **Previsão Horária (24h) e Estendida (7 a 14 dias)** com curva térmica e probabilidade de chuva
+- **Análise de Anomalia Climática**: cruza o clima ao vivo com a média histórica do INMET
+- **Duelo e comparação global**: pódio de extremos e tabela comparativa multiparâmetros
+- Carregue os **últimos 30 dias** de qualquer cidade direto nas abas de análise histórica
 
 </td>
 </tr>
