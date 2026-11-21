@@ -1,0 +1,5 @@
+{
+  "name": "CLIMAPS - Dados Meteorológicos",
+  "description": "Plataforma de Monitoramento Meteorológico em Tempo Real e Análise Climática com Open-Meteo, reanálise ERA5 e séries históricas do INMET.",
+  "requestFramePermissions": []
+}
