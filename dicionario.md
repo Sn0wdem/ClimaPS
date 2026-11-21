@@ -1,6 +1,6 @@
 # 📘 Dicionário Didático do Projeto ClimaPS
 
-> **Objetivo deste documento:** explicar, de forma clara, aprofundada e acessível para estudantes, desenvolvedores e pesquisadores, o funcionamento integral do sistema **ClimaPS** — desde a arquitetura de software e fluxos de dados até os conceitos meteorológicos, estatísticos e de código aplicados no projeto.
+> **Objetivo deste documento:** explicar, de forma clara, aprofundada e acessível para estudantes, desenvolvedores e pesquisadores, o funcionamento integral do sistema **ClimaPS** — desde a arquitetura frontend em React e TypeScript até os fluxos de dados, modelos físicos meteorológicos, métodos estatísticos e módulos do código.
 
 ---
 
@@ -10,78 +10,77 @@
 2. [Arquitetura em Camadas (Como as Partes Conversam)](#2-arquitetura-em-camadas-como-as-partes-conversam)
 3. [Fluxo dos Dados na Prática](#3-fluxo-dos-dados-na-prática)
 4. [Conceitos Acadêmicos e de Ciência de Dados Aplicados](#4-conceitos-acadêmicos-e-de-ciência-de-dados-aplicados)
-5. [Dicionário de Python Básico e Avançado Usado no Código](#5-dicionário-de-python-básico-e-avançado-usado-no-código)
-6. [Dicionário das Bibliotecas Externas](#6-dicionário-das-bibliotecas-externas)
+5. [Dicionário de TypeScript, React e CSS Usados no Código](#5-dicionário-de-typescript-react-e-css-usados-no-código)
+6. [Dicionário das Bibliotecas e Ferramentas Externas](#6-dicionário-das-bibliotecas-e-ferramentas-externas)
 7. [Dicionário Completo dos Módulos e Funções do ClimaPS](#7-dicionário-completo-dos-módulos-e-funções-do-climaps)
-8. [Suíte de Testes Automatizados e Garantia de Qualidade](#8-suíte-de-testes-automatizados-e-garantia-de-qualidade)
+8. [Garantia de Qualidade, Tipagem e Build](#8-garantia-de-qualidade-tipagem-e-build)
 
 ---
 
 ## 1. Visão Geral do Sistema
 
-O **ClimaPS** é uma plataforma analítica e de monitoramento meteorológico desenvolvida em **Python** e **Streamlit**, desenhada para atender a três grandes propósitos:
+O **ClimaPS** é uma aplicação web SPA (*Single Page Application*) de monitoramento meteorológico e análise de séries históricas desenvolvida em **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4** e **Recharts**, executada integralmente no navegador do usuário e estruturada em torno de três pilares:
 
-1. **Monitoramento Climático Global em Tempo Real (`🌍 Mundo Ao Vivo`):**
-   - Consulta instantânea de qualquer cidade ou coordenada (`Latitude` / `Longitude`) do mundo sem necessidade de chave de API.
-   - Cálculo de índices bioclimáticos em tempo real: **Ponto de Orvalho (*Dew Point*)**, **Índice de Calor (*Heat Index*)**, **Risco Barométrico de Tempestade** e **Qualidade do Ar (*US AQI*, PM2.5, PM10, CO)**.
-   - **Calendário Histórico:** consulta de telemetria completa de qualquer dia da história recente humana (reanálise global ERA5).
-   - **Gerador de Datasets Anuais:** download e geração de bases completas de 1 ano (8.760 horas) no mesmo formato padrão do INMET para qualquer ponto do globo.
-   - **Radar Animado ao Vivo:** integração direta com o radar meteorológico global do Windy.com.
+1. **Monitoramento Climático Global em Tempo Real (`Mundo Ao Vivo`):**
+   - Consulta instantânea de qualquer cidade ou coordenada (`Latitude` / `Longitude`) do globo sem necessidade de chave de API.
+   - Cálculo em tempo real de índices bioclimáticos: **Ponto de Orvalho (*Dew Point*)**, **Índice de Calor (*Heat Index*)**, **Risco Barométrico de Tempestade**, **Radiação UV** e **Qualidade do Ar (*US AQI*, PM2.5, PM10, CO, NO₂ e O₃)**.
+   - **Calendário Histórico (ERA5):** consulta da curva horária de 24h de qualquer data no passado via reanálise atmosférica global.
+   - **Gerador de Datasets Anuais (8.760h):** geração e download de séries horárias completas de 1 ano no padrão compatível com o INMET para qualquer ponto do planeta.
+   - **Radar Animado ao Vivo:** integração direta com o radar meteorológico interativo do **Windy.com**.
 
-2. **Comparação Interanual e de Séries Temporais (`⚖️ Comparação entre Anos`):**
-   - Comparação lado a lado de dois arquivos CSV (Ano A vs. Ano B) ou de duas estações meteorológicas distintas.
-   - Confronto direto de chuva anual, temperaturas médias, anomalias térmicas e dias secos/chuvosos.
-   - Gráficos interativos com deltas de precipitação mês a mês e amplitudes térmicas sobrepostas.
+2. **Comparação Interanual e Entre Estações (`Comparar Anos`):**
+   - Confronto lado a lado entre dois conjuntos de dados (Ano A vs. Ano B ou duas estações diferentes), com suporte a arquivos salvos na sessão, upload de CSVs locais ou busca instantânea de anos históricos via **ERA5**.
+   - Comparação de precipitação acumulada, médias térmicas, recordes, amplitude e dias chuvosos.
+   - Gráficos comparativos mês a mês e matriz detalhada com variações absolutas ($\Delta$) e percentuais ($\%$).
 
-3. **Análise Forense e Exploração de Séries Históricas do INMET:**
-   - Ingestão universal de arquivos de estações convencionais e automáticas do **INMET** e de arquivos exportados pelo próprio ClimaPS.
-   - Filtros dinâmicos por período, horário e dias chuvosos.
-   - Auditoria rigorosa de qualidade de dados (*Data Quality Report*), detecção de *outliers* pelo método IQR e matriz de correlação de Pearson.
-   - Edição interativa de registros na sessão e exportação em **CSV** ou scripts **SQL** (`CREATE TABLE` + `INSERT INTO`).
+3. **Análise Forense de Séries Históricas do INMET (`Análise Histórica`):**
+   - Ingestão universal de arquivos CSV horários do **INMET** e arquivos exportados pelo próprio **ClimaPS** (com separador `;` ou `,`).
+   - Filtros dinâmicos na barra lateral por intervalo de datas, janela horária e ocorrência de precipitação.
+   - Auditoria de qualidade de dados (*Data Quality Report*), detecção de *outliers* pelo método **IQR** e **matriz de correlação de Pearson**.
+   - Edição interativa de medições diretamente na tabela da sessão e exportação em **CSV (UTF-8-SIG)** ou scripts **SQL** (`CREATE TABLE` + `INSERT INTO`).
 
 ---
 
 ## 2. Arquitetura em Camadas (Como as Partes Conversam)
 
-O projeto adota os princípios de **Clean Architecture** e **Separation of Concerns (SoC)**, mantendo regras matemáticas, acesso a dados e interface visual estritamente desacoplados:
+O projeto aplica **Separação de Responsabilidades (*Separation of Concerns*)**, mantendo contratos de tipos, lógica matemática/meteorológica, conectores HTTP e componentes de interface desacoplados:
 
-| Camada | Módulos | Papel no sistema |
+| Camada | Diretórios / Arquivos | Papel no sistema |
 |---|---|---|
-| **Ingestão & Conectores (Data Layer)** | `climaps/core/data_loader.py`<br>`climaps/core/weather_api.py` | Lê CSVs (INMET ou exportados), faz requisições HTTP REST à Open-Meteo (tempo real, ERA5, qualidade do ar), normaliza esquemas e converte em objetos unificados `StationDataset`. |
-| **Núcleo Analítico (Domain / Core)** | `climaps/core/analysis.py` | Executa cálculos de física atmosférica (Magnus-Tetens, Steadman/NOAA), avaliação barométrica de tempestades, anomalias climáticas, estatísticas descritivas (KPIs, médias, somas), auditoria de dados e correlação de Pearson. |
-| **Apresentação & UI (Interface)** | `app_streamlit.py`<br>`climaps/ui_world.py`<br>`climaps/ui_comparison.py`<br>`climaps/ui_tabs.py`<br>`climaps/ui_styles.py` | Constrói as 7 abas da aplicação, orquestra formulários e inputs, gera gráficos interativos com Plotly, gerencia o tema Dark/Light e estiliza a experiência do usuário com CSS avançado. |
-| **Garantia de Qualidade (Tests)** | `tests/test_analysis.py`<br>`tests/test_ui_and_formatting.py` | 20 testes unitários automatizados cobrindo cálculos meteorológicos, ingestão de dados, streams de memória, cálculos de anomalia e integridade de séries temporais. |
+| **Contratos de Dados (Types)** | `src/types/weather.ts` | Define todas as interfaces TypeScript do domínio (`WeatherRecord`, `StationDataset`, `FilterSpec`, `LivePointWeather`, `KpiResult`, `QualityReport`, etc.), garantindo segurança de tipos em toda a aplicação. |
+| **Ingestão & Conectores (Data Layer)** | `src/core/dataLoader.ts`<br>`src/core/weatherApi.ts` | Faz o parsing universal de CSVs do INMET/ClimaPS, gera exportações CSV/SQL e consome os endpoints públicos REST da **Open-Meteo** (Geocoding, Forecast, Air Quality e Archive/ERA5) com cache TTL em memória. |
+| **Núcleo Analítico (Domain / Core)** | `src/core/analysis.ts`<br>`src/core/formatters.ts`<br>`src/core/weatherIcons.tsx` | Executa algoritmos de física atmosférica (Magnus-Tetens, Steadman/NOAA), avaliação barométrica de tempestades, anomalias climáticas, filtros, KPIs, auditoria IQR, correlação de Pearson, formatação PT-BR e mapeamento de ícones WMO. |
+| **Apresentação & Workspace (UI)** | `src/App.tsx`<br>`src/index.css`<br>`src/components/Sidebar.tsx`<br>`src/components/HeaderBanner.tsx`<br>`src/components/MetricCard.tsx`<br>`src/components/WorldLiveTab.tsx`<br>`src/components/ComparisonTab.tsx`<br>`src/components/AnalyticsTabs.tsx` | Gerencia o estado global da sessão, alternância de tema Escuro/Claro, barra lateral de navegação e filtros, cabeçalho contextual, painéis de telemetria, gráficos interativos com Recharts e tabelas de alta densidade. |
 
 ---
 
 ## 3. Fluxo dos Dados na Prática
 
-### 🔹 Caminho A — Monitoramento Global & Clima Ao Vivo (`🌍 Mundo Ao Vivo`)
-1. O usuário digita uma cidade (ex.: `"Manaus"`) ou coordenadas geográficas.
-2. `search_city()` consulta o serviço de geocodificação da Open-Meteo e retorna coordenadas e elevação.
-3. `fetch_current_point()` busca o pacote completo de telemetria atual (temperatura, umidade, vento, pressão barométrica, índice UV, horários de nascer/pôr do sol e qualidade do ar).
-4. `calculate_dew_point()`, `calculate_heat_index()` e `evaluate_storm_risk()` processam as medições físicas instantâneas, categorizando o conforto humano e eventuais alertas meteorológicos.
-5. Se uma estação histórica estiver carregada na sessão, `calculate_climate_anomaly()` compara a medição atual com a média histórica do mês correspondente, informando se o dia está atipicamente mais quente ou mais frio.
-6. O radar animado do **Windy.com** exibe o deslocamento em tempo real de massas de ar e precipitação.
+### 🔹 Caminho A — Monitoramento Global & Clima Ao Vivo (`Mundo Ao Vivo`)
+1. O usuário informa uma cidade (ex.: `"Manaus"`) ou coordenadas geográficas.
+2. `searchCity()` consulta a API de geocodificação da Open-Meteo e retorna a lista de correspondências com latitude, longitude e elevação.
+3. `fetchCurrentPoint()` (com suporte de `fetchAirQuality()`) busca telemetria em tempo real, previsão horária de 24h, previsão diária estendida (7 a 14 dias) e poluentes atmosféricos.
+4. `calculateDewPoint()`, `calculateHeatIndex()`, `evaluateStormRisk()`, `classifyAirQuality()` e `classifyUv()` transformam os dados brutos em indicadores bioclimáticos e alertas interpretáveis.
+5. Caso haja uma base histórica carregada na sessão, `calculateClimateAnomaly()` compara a temperatura atual com a média climatológica do mês correspondente na estação carregada.
+6. O iframe integrado do **Windy.com** exibe o radar meteorológico animado na coordenada selecionada, com seletor de camadas (chuva, vento, temperatura, nuvens e pressão).
 
 ### 🔹 Caminho B — Calendário Histórico & Datasets Anuais Globais (8.760h)
-1. **Consulta por Calendário:** O usuário escolhe qualquer data no passado. `fetch_historical_day()` consulta o modelo de reanálise ERA5, retornando a curva térmica horária de 24h, precipitação, ventos e pressão de qualquer dia da história.
-2. **Geração de 1 Ano Completo:** O usuário seleciona um ano (ex.: 2023) para a coordenada escolhida. `fetch_annual_dataset()` faz o download de 8.760 horas, calcula todas as variáveis, gera um arquivo CSV padronizado idêntico ao INMET e o salva automaticamente em `data/importados/`.
-3. Com um único clique, o dataset gerado é carregado na sessão do aplicativo, permitindo que qualquer lugar do planeta passe por todas as análises históricas.
+1. **Consulta por Calendário:** O usuário escolhe uma data passada e `fetchHistoricalDay()` consulta a reanálise **ERA5**, retornando a evolução horária completa de 24h (temperatura, sensação, umidade, chuva, vento e pressão).
+2. **Geração de 1 Ano Completo:** O usuário escolhe um ano para a coordenada ativa. `fetchAnnualDataset()` coleta as 8.760 horas do ano na API de arquivo ERA5, converte o resultado em `StationDataset` e constrói um CSV padronizado via `buildCsvExport()`.
+3. O dataset pode ser baixado imediatamente em `.csv` ou injetado direto na sessão do aplicativo (`onLoadDatasetIntoSession`) para análise completa em todas as abas históricas.
 
-### 🔹 Caminho C — Comparação Interanual (`⚖️ Comparação entre Anos`)
-1. O usuário seleciona ou faz o upload de dois arquivos CSV diferentes (ex.: Ano 2014 vs. Ano 2023).
-2. `_carregar_dataset_ou_erro()` normaliza ambos os conjuntos de dados via `load_station_csv()`.
-3. `_extrair_metricas_anuais()` calcula os totais de chuva, temperaturas médias, dias chuvosos e extremos de cada ano.
-4. `_construir_tabela_mensal()` gera uma matriz cruzada comparando mês a mês a precipitação e temperatura, calculando variações absolutas e percentuais.
-5. Gráficos Plotly sobrepostos exibem a curva de amplitude térmica simultânea dos dois anos e o gráfico de barras comparativo de chuva com indicação de deltas.
+### 🔹 Caminho C — Comparação Interanual (`Comparar Anos`)
+1. Para cada lado (**Série A** e **Série B**), o usuário escolhe entre: arquivo já salvo na sessão, upload de um CSV local ou download direto de um ano via reanálise **ERA5**.
+2. `parseStationCsv()` normaliza os CSVs para `StationDataset` e `identifyYearAndName()` detecta automaticamente estação e ano de referência.
+3. `calculateKpis()` e `monthlySummary()` extraem totais de precipitação, médias térmicas, recordes e dias chuvosos para os 12 meses de cada série.
+4. Os componentes **Recharts** exibem gráficos comparativos de precipitação mensal e curvas térmicas sobrepostas, acompanhados da tabela de variações mensais ($\Delta$ absoluto e $\%$).
 
-### 🔹 Caminho D — Análise Forense de Séries do INMET
-1. O usuário envia um arquivo CSV do INMET ou seleciona o arquivo base (`dados_A101_H_2014.csv`).
-2. `load_station_csv()` identifica automaticamente o padrão de cabeçalho, trata separadores `;` ou `,`, normaliza decimais e cria colunas temporais estruturadas (`data_hora`, `mes`, `hora_num`).
-3. O usuário define filtros na barra lateral (`FilterSpec`), e `apply_filters()` fatia o DataFrame dinamicamente.
-4. As abas **Resumo**, **Gráficos** e **Explorador** atualizam instantaneamente seus KPIs, gráficos e relatórios de qualidade.
-5. Edições feitas na **Tabela editável** persistem no `st.session_state` e podem ser exportadas como novo CSV ou script SQL.
+### 🔹 Caminho D — Análise Forense de Séries Históricas do INMET
+1. O usuário abre o arquivo de exemplo (`public/data/dados_A101_H_2014.csv` — Manaus A101, 2014) ou envia um CSV do INMET/ClimaPS na barra lateral (por botão ou *drag-and-drop*).
+2. `parseStationCsv()` lê metadados do cabeçalho, identifica separador (`;` ou `,`), converte decimais com vírgula para ponto flutuante e monta a coleção tipada de `WeatherRecord`.
+3. O usuário ajusta os controles de filtro (`FilterSpec`) na barra lateral; `useMemo` reexecuta `applyFilters()` de forma reativa sem travar a interface.
+4. As visões **Resumo e Qualidade**, **Gráficos e Correlação**, **Explorador** e **Exportar** atualizam instantaneamente com base no recorte filtrado.
+5. Edições feitas na **Tabela Editável** atualizam o estado da sessão em `App.tsx` e ficam imediatamente disponíveis para gráficos, auditoria e exportação em CSV ou SQL.
 
 ---
 
@@ -89,145 +88,122 @@ O projeto adota os princípios de **Clean Architecture** e **Separation of Conce
 
 | Conceito | O que significa na prática | Onde atua no ClimaPS |
 |---|---|---|
-| **Ponto de Orvalho (*Dew Point*)** | Temperatura na qual o vapor d'água no ar condensa em líquido. É a medida mais confiável da umidade absoluta e sensação de abafamento. Calculado pela aproximação física de Magnus-Tetens ($a=17.27, b=237.7$). | `calculate_dew_point()` em `analysis.py` |
-| **Índice de Calor (*Heat Index*)** | Temperatura aparente percebida pelo corpo humano sob os efeitos combinados de calor e umidade relativa, modelado pelas equações de regressão múltipla de Steadman/NOAA. | `calculate_heat_index()` em `analysis.py` |
-| **Alerta Barométrico de Tempestade** | Detecção de gradiente barométrico negativo (pressão atmosférica $< 1005\text{ hPa}$) combinada a alta umidade relativa ($> 75\%$) e rajadas de vento convectivas. | `evaluate_storm_risk()` em `analysis.py` |
-| **Reanálise Atmosférica (ERA5)** | Modelo computacional global do Centro Europeu de Previsões Meteorológicas a Médio Prazo (ECMWF) que combina observações do passado com modelos físicos para recriar o clima histórico de qualquer lugar da Terra. | `fetch_historical_day()` e `fetch_annual_dataset()` em `weather_api.py` |
-| **Análise de Anomalia Climática** | Comparação entre o valor observado no momento e a média climatológica histórica de referência ($\Delta T = T_{\text{atual}} - \bar{T}_{\text{hist}}$), identificando extremos de calor ou frio. | `calculate_climate_anomaly()` em `analysis.py` |
-| **ETL (Extract, Transform, Load)** | Pipeline que ingere dados heterogêneos (CSVs do INMET com metadados no topo, CSVs exportados ou JSONs de APIs) e os transforma em um formato uniforme e limpo. | `data_loader.py` e `weather_api.py` |
-| **Auditoria de Qualidade (*Data Quality*)** | Verificação algorítmica de integridade: checagem de 8.760 horas por ano bissexto/não-bissexto, valores nulos, registros duplicados, chuva negativa e violação física ($T_{\max} < T_{\min}$). | `quality_report()` em `analysis.py` |
-| **Detecção de Outliers por IQR** | Método não-paramétrico baseado no Intervalo Interquartil ($\text{IQR} = Q_3 - Q_1$). Valores além de $[Q_1 - 1.5 \times \text{IQR}, Q_3 + 1.5 \times \text{IQR}]$ são sinalizados como discrepantes. | `_iqr_outlier_count()` em `analysis.py` |
-| **Correlação de Pearson** | Coeficiente $r \in [-1, 1]$ que mede a força e a direção da relação linear entre precipitação, temperatura máxima e mínima. | `correlation_matrix()` em `analysis.py` |
-| **Cache com Invalidação por TTL** | Mecanismo de alta performance que armazena respostas de requisições de rede em memória por um Tempo de Vida (*Time-To-Live*) definido (ex.: 1h para dias históricos, 24h para séries anuais). | `@st.cache_data` |
+| **Ponto de Orvalho (*Dew Point*)** | Temperatura na qual o vapor d'água contido no ar atinge saturação e condensa em gotículas. É um indicador mais fiel de abafamento do que a umidade relativa isolada. Calculado via aproximação de **Magnus-Tetens** ($a = 17{,}27,\; b = 237{,}7$). | `calculateDewPoint()` em `src/core/analysis.ts` |
+| **Índice de Calor (*Heat Index*)** | Temperatura aparente sentida pelo corpo humano sob a combinação de temperatura do ar e umidade relativa, segundo a equação de regressão múltipla de **Steadman / NOAA** com ajustes para faixas extremas de umidade. | `calculateHeatIndex()` em `src/core/analysis.ts` |
+| **Risco Barométrico de Tempestade** | Avaliação combinada de queda de pressão atmosférica ($< 1005\text{ hPa}$), umidade elevada, rajadas de vento e precipitação ativa para classificar o nível de risco convectivo. | `evaluateStormRisk()` em `src/core/analysis.ts` |
+| **Reanálise Atmosférica (ERA5)** | Conjunto global de dados do ECMWF que assimila observações históricas em modelos físicos numéricos para reconstruir o estado horário da atmosfera em qualquer coordenada do planeta. | `fetchHistoricalDay()` e `fetchAnnualDataset()` em `src/core/weatherApi.ts` |
+| **Anomalia Climática** | Diferença entre a temperatura observada no instante atual e a média histórica de referência do mesmo mês ($\Delta T = T_{\text{atual}} - \bar{T}_{\text{hist}}$), classificando desvios quentes, frios ou dentro da normalidade. | `calculateClimateAnomaly()` em `src/core/analysis.ts` |
+| **ETL no Navegador (Client-Side ETL)** | Pipeline que extrai dados de formatos heterogêneos (CSV bruto do INMET com cabeçalho de metadados, CSV exportado ou JSON REST), transforma tipos/datas e carrega em estruturas tipadas uniformes. | `src/core/dataLoader.ts` e `src/core/weatherApi.ts` |
+| **Auditoria de Qualidade (*Data Quality*)** | Verificação sistemática da integridade temporal e física da série: continuidade horária (lacunas), contagem de valores nulos, registros duplicados, chuva negativa e violação física ($T_{\max} < T_{\min}$). | `qualityReport()` em `src/core/analysis.ts` |
+| **Detecção de Outliers por IQR** | Método estatístico robusto baseado no Intervalo Interquartil ($\text{IQR} = Q_3 - Q_1$). Medições fora de $[Q_1 - 1{,}5 \times \text{IQR},\; Q_3 + 1{,}5 \times \text{IQR}]$ são contabilizadas como atípicas. | `iqrOutlierCount()` / `qualityReport()` em `src/core/analysis.ts` |
+| **Correlação de Pearson ($r$)** | Medida adimensional no intervalo $[-1, 1]$ que quantifica a força e a direção da associação linear entre precipitação, temperatura máxima e temperatura mínima. | `correlationMatrix()` em `src/core/analysis.ts` |
+| **Cache em Memória com TTL** | Armazenamento temporário de respostas HTTP indexado por chave de consulta com tempo de expiração (*Time-To-Live*), reduzindo latência e requisições repetidas à Open-Meteo. | `cacheGet()` / `cacheSet()` em `src/core/weatherApi.ts` |
 
 ---
 
-## 5. Dicionário de Python Básico e Avançado Usado no Código
+## 5. Dicionário de TypeScript, React e CSS Usados no Código
 
 | Recurso | Explicação Didática | Exemplo no Código |
 |---|---|---|
-| `dataclass(frozen=True)` | Decorador do Python que cria classes para estruturar dados imutáveis, gerando automaticamente construtores, representação em texto e comparação de igualdade. | `StationDataset`, `FilterSpec` |
-| `type annotations` (`float \| None`) | Notação de tipos estáticos que documenta o que a função espera receber e retornar, prevenindo erros em tempo de desenvolvimento. | `def calculate_dew_point(...) -> float \| None:` |
-| `tuple unpacking` | Desempacotamento de múltiplos valores retornados por uma função em variáveis individuais. | `hi_val, hi_desc, hi_alert = calculate_heat_index(...)` |
-| `pathlib.Path` | Mapeamento orientado a objetos para o sistema de arquivos, funcionando de forma transparente e idêntica no Windows, Linux e macOS. | `DATA_DIR / "dados_A101_H_2014.csv"` |
-| `io.StringIO` / `io.BytesIO` | Criação de fluxos de leitura e escrita diretamente na memória RAM, sem necessidade de salvar arquivos temporários em disco. | Usado no upload e conversão de CSVs no `data_loader.py` |
-| `try ... except ... finally` | Estrutura de tratamento de exceções que impede falhas de conexão de rede ou arquivos corrompidos de derrubar a aplicação. | Captura de erros de requisição HTTP em `weather_api.py` |
-| `list comprehension` / `generator` | Sintaxe concisa para transformar ou filtrar coleções em uma única linha de código. | `[m for m in MESES_PT if m != "Nenhum"]` |
-| `lambda functions` | Funções anônimas de linha única usadas para transformações pontuais em ordenação ou formatação. | `format_func=lambda p: p.name` |
-| `st.session_state` | Dicionário de estado persistente do Streamlit que mantém dados, tema e configurações vivos entre as recargas de tela do usuário. | `st.session_state["dataset"]` |
-| `math.log` / `math.sqrt` | Funções matemáticas de alta precisão da biblioteca padrão do Python usadas nos algoritmos meteorológicos. | Fórmula de Magnus-Tetens e regressão do Heat Index |
+| `interface` / `type` | Contratos estáticos do TypeScript que definem exatamente quais propriedades e tipos cada objeto possui, evitando erros de acesso a campos inexistentes em tempo de execução. | `WeatherRecord`, `StationDataset`, `TabKey` |
+| `Union Types` (`number \| null`) | Permite declarar explicitamente quando um sensor pode retornar ausência de medição (`null`), obrigando o código a tratar valores faltantes antes de calcular médias ou somas. | `precipitacao_mm: number \| null` |
+| `useState` | Hook do React que armazena estado reativo de um componente (como o dataset ativo, a aba selecionada, os filtros e o modo Escuro/Claro). | `const [isDark, setIsDark] = useState(true);` |
+| `useEffect` | Hook usado para sincronizar efeitos colaterais externos ao ciclo de renderização, como aplicar a classe `.dark` no `<html>` ou disparar buscas na API quando a cidade muda. | `document.documentElement.classList.toggle('dark', isDark)` |
+| `useMemo` | Memoriza o resultado de cálculos pesados (como filtrar 8.760 registros ou gerar matrizes mensais), recalculando apenas quando suas dependências mudam. | `const filteredRecords = useMemo(() => applyFilters(...), [records, filterSpec])` |
+| `useCallback` | Preserva a identidade de funções passadas como propriedades (*props*) para componentes filhos, evitando re-renderizações desnecessárias. | `handleLoadSavedFile`, `handleUploadCsv` |
+| `async` / `await` & `Promise.all` | Sintaxe assíncrona do JavaScript/TypeScript para realizar chamadas HTTP sem travar a interface e buscar múltiplas cidades ou endpoints em paralelo. | `fetchCurrentPoint()`, `fetchMultiplePoints()` |
+| `Blob` & `URL.createObjectURL` | APIs nativas do navegador que permitem gerar e baixar arquivos `.csv` e `.sql` localmente direto da memória RAM, sem precisar de um servidor backend. | Exportação em `ExportTab` e `WorldLiveTab` |
+| CSS Custom Properties & `@custom-variant dark` | Tokens semânticos (`--bg-canvas`, `--bg-surface`, `--text-primary`, `--accent`) definidos em `:root` e `.dark`, permitindo troca instantânea entre tema Claro e Escuro com consistência de contraste. | `src/index.css` |
+| `tabular-nums` (`JetBrains Mono`) | Recurso tipográfico em que todos os dígitos ocupam exatamente a mesma largura horizontal, garantindo alinhamento vertical perfeito em tabelas, KPIs e séries numéricas. | Classe `.font-mono-tabular` em `src/index.css` |
 
 ---
 
-## 6. Dicionário das Bibliotecas Externas
+## 6. Dicionário das Bibliotecas e Ferramentas Externas
 
-| Biblioteca | Papel no ClimaPS | Principais Operações Executadas |
+| Tecnologia | Papel no ClimaPS | Principais Recursos Utilizados |
 |---|---|---|
-| **Pandas (`pd`)** | Motor de manipulação de dados tabulares em alta performance. | `pd.read_csv`, `pd.to_datetime`, `pd.to_numeric`, `.groupby()`, `.agg()`, `.resample()`, `.corr()`, `.to_csv()` |
-| **NumPy (`np`)** | Computação numérica vetorial e tratamento de valores matemáticos especiais. | `np.nan`, `np.inf`, cálculos estatísticos de quartis |
-| **Requests** | Cliente HTTP síncrono para consumo de APIs REST externas. | `requests.get()`, tratamento de timeout e validação de `status_code` |
-| **Plotly (`go`, `px`)** | Motor gráfico interativo baseado em JavaScript/D3.js com renderização vetorial e suporte nativo a temas escuro e claro. | `go.Figure`, `go.Scatter`, `px.bar`, `px.imshow`, formatação de eixos e *hoverlabels* |
-| **Streamlit (`st`)** | Framework web reativo que converte código Python puro em interface web com componentes nativos. | `st.tabs`, `st.sidebar`, `st.metric`, `st.dataframe`, `st.radio`, `st.date_input`, `st.download_button` |
+| **React 19** | Biblioteca de interface declarativa baseada em componentes funcionais e hooks. | Composição de telas, gerenciamento de estado da sessão e renderização reativa de dados. |
+| **TypeScript 5.7** | Superset tipado do JavaScript com verificação estática rigorosa (`tsc --noEmit`). | Tipagem forte de payloads da Open-Meteo, registros INMET, filtros e props dos componentes. |
+| **Vite 6** | Bundler e servidor de desenvolvimento ultrarrápido baseado em ES Modules nativos. | Dev server instantâneo na porta `3000` e build otimizado de produção. |
+| **Tailwind CSS v4** | Framework CSS *utility-first* integrado via `@tailwindcss/vite`. | Layout responsivo, grids analíticos, espaçamento consistente e variante `.dark`. |
+| **Recharts** | Biblioteca de visualização de dados declarativa baseada em React e SVG. | `ResponsiveContainer`, `ComposedChart`, `AreaChart`, `BarChart`, `LineChart`, eixos formatados e tooltips dinâmicos. |
+| **Lucide React** | Biblioteca de ícones vetoriais SVG com traço limpo e uniforme. | Ícones de navegação, controles de upload/exportação e condições meteorológicas WMO. |
+| **Open-Meteo API** | Plataforma aberta de dados meteorológicos, qualidade do ar e reanálise ECMWF ERA5. | Geocoding API, Forecast API, Air Quality API e Historical Archive API (sem necessidade de chave). |
+| **Windy.com Embed** | Serviço interativo de radar e mapas meteorológicos em tempo real. | Visualização incorporada de radar de chuva, vento, temperatura, nuvens e pressão atmosférica. |
 
 ---
 
 ## 7. Dicionário Completo dos Módulos e Funções do ClimaPS
 
-### 📂 `climaps/core/data_loader.py` — Ingestão e Normalização de Dados
-- **`COLUNAS_INTERNAS`**: Dicionário que traduz cabeçalhos longos do INMET para nomes canônicos curtos (`data`, `hora`, `precipitacao_mm`, `temp_max_c`, `temp_min_c`).
-- **`StationDataset`**: Classe estruturada (`dataclass`) imutável contendo os metadados da estação (`metadata`), o DataFrame tratado (`data`) e a origem (`source`).
-- **`_localizar_cabecalho(linhas)`**: Analisador léxico que inspeciona as primeiras linhas do arquivo e detecta se o arquivo é um CSV bruto do INMET, uma tabela exportada pelo ClimaPS ou uma série temporal com data/hora.
-- **`load_station_csv(path)`**: Função universal de carga que aceita caminhos (`Path`, `str`), texto puro, `bytes`, buffers `StringIO` ou arquivos enviados via upload do Streamlit (`UploadedFile`), normalizando tipos numéricos e construindo o índice temporal `data_hora`.
+### 📂 `src/types/weather.ts` — Contratos e Interfaces de Domínio
+- **`WeatherRecord`**: Representa uma observação horária padronizada (`data`, `dia`, `hora`, `hora_num`, `data_hora`, `mes`, `precipitacao_mm`, `temp_max_c`, `temp_min_c`).
+- **`StationDataset`**: Agrupa `metadata` da estação, array de `WeatherRecord` (`data`) e `sourceName`.
+- **`SavedFileEntry`**: Descreve um arquivo disponível na barra lateral (arquivo de exemplo em `/public/data/`, CSV importado ou cópia exportada na sessão).
+- **`FilterSpec`**: Encapsula o recorte ativo do usuário (`start`, `end`, `hourStart`, `hourEnd`, `rainyOnly`).
+- **`LivePointWeather` / `HistoricalDayWeather` / `LiveWeatherBundle`**: Tipagens dos dados normalizados de telemetria atual, previsão, qualidade do ar e reanálise ERA5.
+- **`KpiResult` / `MonthlySummaryRow` / `DailySummaryRow` / `QualityReport`**: Estruturas de saída do núcleo analítico.
 
-### 📂 `climaps/core/analysis.py` — Núcleo Meteorológico e Estatístico
-- **`FilterSpec`**: Estrutura que encapsula os critérios de filtragem do usuário (datas inicial e final, janela de horas e filtro de chuva).
-- **`apply_filters(df, spec)`**: Executa o fatiamento temporal e categórico de acordo com as especificações.
-- **`calculate_kpis(df)`**: Calcula os indicadores-chave: total de registros, precipitação acumulada, médias das temperaturas máxima e mínima, e porcentagem de integridade temporal.
-- **`monthly_summary(df)` / `daily_summary(df)`**: Agrupamentos temporais que sumarizam chuva e temperaturas por mês ou dia.
-- **`_iqr_outlier_count(series)`**: Implementação do cálculo de outliers baseado no intervalo interquartil ($Q_3 - Q_1$).
-- **`quality_report(df)`**: Auditoria de dados que quantifica buracos temporais, duplicidades, valores nulos, registros atípicos e inconsistências físicas ($T_{\max} < T_{\min}$).
-- **`generate_insights(df)`**: Gerador de conclusões descritivas automatizadas (mês mais chuvoso, pico de calor, maior tempestade e dias de estiagem).
-- **`correlation_matrix(df)`**: Matriz de covariância e correlação linear de Pearson entre as variáveis climáticas.
-- **`calculate_dew_point(temp_c, humidity_pct)`**: Algoritmo de Magnus-Tetens para estimativa do Ponto de Orvalho em graus Celsius.
-- **`calculate_heat_index(temp_c, humidity_pct)`**: Implementação completa da equação multivariada do NOAA/Steadman para Sensação Térmica e estresse bioclimático.
-- **`evaluate_storm_risk(pressao, umidade, vento, rajadas, chuva)`**: Avaliação ponderada de risco convectivo e tempestade com gatilho barométrico ($< 1005\text{ hPa}$).
-- **`calculate_climate_anomaly(df, current_weather)`**: Algoritmo comparativo que cruza o clima em tempo real com a média histórica do mês correspondente na estação carregada.
-- **`classify_air_quality(us_aqi, pm2_5)`**: Categorização do índice internacional de qualidade do ar (*US AQI*) e particulados finos decorrentes de queimadas e poluição.
-- **`classify_uv(uv_index)`**: Categorização da intensidade da radiação ultravioleta segundo os limites de segurança da OMS.
+### 📂 `src/core/dataLoader.ts` — Ingestão Universal e Exportação
+- **`parseStationCsv(csvText, sourceName)`**: Detecta automaticamente o formato do CSV (INMET oficial com cabeçalho de metadados nas linhas iniciais ou CSV tabular exportado pelo ClimaPS), identifica separador (`;` ou `,`), normaliza números com vírgula decimal e gera um `StationDataset` ordenado cronologicamente.
+- **`buildCsvExport(records, headerMeta)`**: Serializa os registros em CSV compatível com Excel e com o próprio ClimaPS (UTF-8 com BOM e separador `;`).
+- **`buildSqlScript(records)`**: Gera script SQL completo (`CREATE TABLE IF NOT EXISTS observacoes_meteorologicas` + comandos `INSERT INTO` com tratamento de `NULL`) pronto para PostgreSQL, MySQL ou SQLite.
+- **`identifyYearAndName(dataset)`**: Infere automaticamente o nome legível da estação e o ano predominante da série para rotular comparações interanuais.
 
-### 📂 `climaps/core/weather_api.py` — Integração de APIs Globais
-- **`GEOCODING_URL` / `FORECAST_URL` / `AIR_QUALITY_URL` / `HISTORICAL_URL`**: Constantes com as rotas REST públicas da Open-Meteo.
-- **`WMO_CODES_PT`**: Dicionário de tradução dos códigos de tempo WMO para português com emojis correspondentes.
-- **`search_city(city_name)`**: Consulta o serviço de geocodificação para resolução de nomes de cidades e coordenadas mundiais.
-- **`fetch_air_quality(lat, lon)`**: Coleta medições atmosféricas de poluentes (PM2.5, PM10, Monóxido de Carbono, Dióxido de Nitrogênio e Ozônio).
-- **`fetch_current_point(lat, lon, label)`**: Coleta o pacote em tempo real de telemetria meteorológica da coordenada especificada.
-- **`fetch_multiple_points(locations)`**: Coleta concorrente ou em lote do clima atual para múltiplos pontos globais.
-- **`fetch_live_weather(lat, lon, label, past_days)`**: Coleta telemetria atual, previsão estendida de 7 dias e série horária recente convertida diretamente em `StationDataset`.
-- **`fetch_historical_day(lat, lon, label, target_date)`**: Coleta dados de reanálise horária (ERA5) para uma data histórica específica.
-- **`fetch_annual_dataset(lat, lon, label, year)`**: Coleta a série completa de 8.760 horas de um ano inteiro, estrutura os dados em conformidade com as colunas do INMET e gera um arquivo CSV pronto para uso.
+### 📂 `src/core/analysis.ts` — Núcleo Meteorológico e Estatístico
+- **`MESES_PT` / `MESES_NOMES` / `MESES_EXTENSO`**: Mapas de localização de meses em português.
+- **`applyFilters(records, spec)`**: Filtra registros por intervalo de datas, janela horária e ocorrência de precipitação.
+- **`calculateKpis(records)`**: Calcula total de registros, chuva acumulada, médias de $T_{\max}$ e $T_{\min}$, extremos e taxa de integridade temporal.
+- **`monthlySummary(records)` / `dailySummary(records)`**: Agregadores mensais e diários de precipitação, médias térmicas, extremos e contagem de dias com chuva.
+- **`qualityReport(records)`**: Executa auditoria completa: completude temporal, buracos na linha do tempo, duplicatas, valores ausentes, chuvas negativas, violações físicas ($T_{\max} < T_{\min}$) e contagem de *outliers* por IQR.
+- **`generateInsights(records)`**: Sintetiza achados automáticos sobre a série (mês mais chuvoso, pico térmico, maior volume horário de chuva e proporção de dias secos).
+- **`correlationMatrix(records)`**: Calcula a matriz de correlação linear de Pearson entre precipitação, temperatura máxima e temperatura mínima.
+- **`calculateDewPoint(tempC, humidityPct)`**: Aproximação de Magnus-Tetens para o Ponto de Orvalho.
+- **`calculateHeatIndex(tempC, humidityPct)`**: Equação de Steadman/NOAA para sensação térmica sob calor e umidade, com classificação de faixa de alerta.
+- **`evaluateStormRisk(...)`**: Classifica o risco barométrico e convectivo de tempestade a partir de pressão, umidade, vento, rajadas e chuva.
+- **`calculateClimateAnomaly(records, currentWeather)`**: Compara a temperatura em tempo real com a média histórica do mesmo mês na estação ativa.
+- **`classifyAirQuality(usAqi, pm25)` / `classifyUv(uvIndex)`**: Classificadores padronizados de qualidade do ar (*US AQI*) e radiação ultravioleta (OMS).
 
-### 📂 `climaps/ui_comparison.py` — Comparação Interanual e Séries Históricas
-- **`_obter_arquivos_disponiveis()`**: Varre as pastas `data/`, `data/importados/` e `exportacoes/` para listar CSVs disponíveis para o usuário comparar.
-- **`_carregar_dataset_ou_erro(origem)`**: Carrega o arquivo selecionado tratando exceções de parsing e exibindo alertas em caso de erro.
-- **`_extrair_metricas_anuais(df)`**: Processa as métricas consolidada do ano (chuva total, temperatura média, extremos e contagem de dias com chuva).
-- **`_construir_tabela_mensal(df_a, df_b, rotulo_a, rotulo_b)`**: Consolida as médias e somas dos 12 meses para os dois anos, calculando colunas de variação absoluta ($\Delta$) e percentual ($\%$) para cada mês.
-- **`render_comparison_tab()`**: Orquestra toda a aba de comparação: formulários de seleção/upload de arquivos, cards de KPIs comparativos, gráficos de barras com deltas de chuva, curvas de amplitude térmica e tabela analítica detalhada.
+### 📂 `src/core/weatherApi.ts` — Conectores Open-Meteo e ERA5
+- **`WORLD_DEFAULTS`**: Lista inicial de cidades de referência global para monitoramento comparativo.
+- **`WMO_CODES_PT` / `weatherDescription(code)`**: Dicionário e utilitário de tradução de códigos meteorológicos WMO para português.
+- **`searchCity(cityName, count)`**: Geocodificação global por nome de cidade.
+- **`fetchAirQuality(latitude, longitude)`**: Coleta de índice US AQI e concentrações de PM2.5, PM10, CO, NO₂ e O₃.
+- **`fetchCurrentPoint(latitude, longitude, label)`**: Busca completa de telemetria atual, previsão horária (24h), previsão diária (14 dias) e qualidade do ar, com cache TTL.
+- **`fetchMultiplePoints(locations)`**: Consulta paralela de múltiplas cidades para o painel comparativo mundial.
+- **`fetchLiveWeather(latitude, longitude, label, pastDays)`**: Gera um `LiveWeatherBundle` com histórico horário recente (30 dias) pronto para carga nas abas analíticas.
+- **`fetchHistoricalDay(latitude, longitude, label, targetDate)`**: Consulta horária de 24h de qualquer data histórica via reanálise ERA5.
+- **`fetchAnnualDataset(latitude, longitude, label, year)`**: Coleta uma série anual completa (8.760 horas) via ERA5, retornando o `StationDataset` estruturado e o CSV pronto para download.
 
-### 📂 `climaps/ui_styles.py` — Sistema de Design e Temas (Dark & Light)
-- **`NAVY` / `BLUE` / `ORANGE`**: Constantes cromáticas corporativas do ClimaPS.
-- **`br_number(valor, decimais, sufixo)`**: Formatador numérico que aplica convenções brasileiras (ponto para milhar e vírgula para decimal).
-- **`format_datetime_friendly(dt_str)`**: Formatador de data e hora para exibição amigável (`DD/MM/AAAA às HH:MM`).
-- **`inject_custom_css()`**: Injeta estilos CSS avançados na página web, gerenciando contraste, bordas, sombras, botões, caixas de seleção, calendários e tipografia adaptados tanto ao Modo Escuro quanto ao Modo Claro (*White Mode*).
-- **`render_header(station_meta, source_name)`**: Desenha o banner superior com status da estação meteorológica conectada.
+### 📂 `src/core/formatters.ts` e `src/core/weatherIcons.tsx` — Formatação e Iconografia
+- **`brNumber(value, decimals)`**: Formata números no padrão brasileiro (`1.234,5`).
+- **`formatDatetimeFriendly` / `formatDateTimeBR` / `formatDateBR`**: Formatação amigável de timestamps e datas ISO para o padrão `DD/MM/AAAA`.
+- **`safeFilename(name)` / `getStamp()`**: Sanitização de nomes de arquivos e geração de timestamps para importações e exportações.
+- **`cleanConditionText(raw)` / `WeatherConditionIcon`**: Remove emojis residuais das descrições WMO e renderiza o ícone vetorial correspondente (`lucide-react`).
 
-### 📂 `climaps/ui_world.py` — Aba Mundo Ao Vivo e Recursos Globais
-- **`cached_current_point` / `cached_historical_day` / `cached_annual_dataset`**: Funções decoradas com `@st.cache_data` para garantir navegação rápida sem redundância de tráfego de rede.
-- **`render_world_live_tab()`**: Constrói a aba global integrando a busca de cidades, os seletores de ferramentas (`⚡ Clima Ao Vivo`, `📅 Consultar Qualquer Dia`, `📂 Baixar / Analisar 1 Ano`), cards bioclimáticos, radar interativo do Windy.com, pódio de extremos e tabela comparativa mundial.
-
-### 📂 `climaps/ui_tabs.py` — Abas Analíticas Tradicionais
-- **`render_summary_tab(df, spec)`**: Renderiza cards de KPIs, gráficos mensais combinados, insights automatizados e relatório de qualidade.
-- **`render_charts_tab(df)`**: Renderiza gráficos de distribuição de chuva, amplitude térmica contínua e matriz de correlação com cores adaptadas ao tema ativo.
-- **`render_table_tab(dataset)`**: Disponibiliza a interface de visualização e edição interativa de células da tabela na memória da sessão.
-- **`render_explorer_tab(df)`**: Tabela paginada para filtragem rápida e inspeção individual de observações horárias.
-
-### 📂 `app_streamlit.py` — Orquestrador Central da Aplicação
-- **`main()`**: Ponto de entrada do sistema. Inicializa o estado da sessão (`st.session_state`), renderiza a barra lateral com seletores de arquivos, filtros e controle de tema (Dark/Light), e instancia as 7 abas principais da plataforma.
-- **`build_sql_script(df, table_name)`**: Transforma qualquer subset filtrado de observações meteorológicas em um script SQL executável (`CREATE TABLE` e lotes de `INSERT INTO`).
-- **`render_export_tab(df, source_name)`**: Interface que oferece download e cópia direta em disco dos dados em formatos CSV e SQL.
+### 📂 `src/components/*` e `src/App.tsx` — Interface e Orquestração
+- **`Sidebar.tsx`**: Barra lateral fixa de 272px (com drawer responsivo no mobile) contendo marca, grupos de navegação (*Monitoramento* e *Análise Histórica*), importador CSV com *drag-and-drop*, seletor de bases salvas, filtros do recorte e seletor segmentado de tema (*Escuro* / *Claro*).
+- **`HeaderBanner.tsx`**: Barra superior sticky (58px) com título da visão ativa, metadados discretos da estação conectada e ação principal contextual (*Abrir Manaus 2014* ou *Exportar base*).
+- **`MetricCard.tsx`**: Cartão de indicador científico com separação tipográfica entre valor tabular e unidade de medida, suporte a tons semânticos e legenda auxiliar.
+- **`WorldLiveTab.tsx`**: Tela principal de monitoramento global com busca por cidade/coordenadas, seletor segmentado de ferramentas (*Clima Ao Vivo*, *Calendário Histórico*, *Baixar / Analisar 1 Ano*), painel hero de telemetria, cartões bioclimáticos, anomalia climática, qualidade do ar, gráficos de previsão, radar Windy.com e tabela mundial comparativa.
+- **`ComparisonTab.tsx`**: Tela de comparação interanual com seletores independentes (Salvo / Upload / ERA5) para Série A e Série B, KPIs comparativos, gráficos mensais e matriz de deltas.
+- **`AnalyticsTabs.tsx`**: Exporta `SummaryTab`, `ChartsTab`, `EditableTableTab`, `ExplorerTab`, `ExportTab` e `HistoricalEmptyState`.
+- **`App.tsx`**: Orquestrador central que gerencia estado da sessão, alternância da classe `.dark`, lista de bases salvas/importadas, aplicação memorizada de filtros, troca de visões e notificações toast.
 
 ---
 
-## 8. Suíte de Testes Automatizados e Garantia de Qualidade
+## 8. Garantia de Qualidade, Tipagem e Build
 
-O projeto conta com **20 testes unitários automatizados** implementados com o framework padrão `unittest` do Python, garantindo que refatorações ou expansões do código não quebrem regras de negócio:
+A integridade do código é assegurada pela compilação estrita em TypeScript e pelo empacotamento de produção com Vite:
 
-### 🧪 `tests/test_analysis.py` (Testes Analíticos do INMET)
-1. `test_metadata_and_shape`: Valida a extração correta de metadados e as 8.760 linhas da série horária anual.
-2. `test_missing_values`: Verifica o tratamento rigoroso de valores nulos e ausentes.
-3. `test_kpis`: Confere a exatidão matemática dos KPIs de chuva acumulada e médias térmicas.
-4. `test_march_is_rainiest`: Valida a regra estatística que identifica março como o mês mais chuvoso na estação de Manaus em 2014.
-5. `test_filter_january_afternoon`: Testa a aplicação combinada de filtros de mês e horário.
-6. `test_quality_rules`: Valida a detecção de erros físicos, buracos de série e outliers.
-7. `test_complete_hourly_timeline`: Garante a continuidade temporal perfeita das 8.760 horas.
+```bash
+# 1. Valida toda a tipagem estática, contratos de dados e importações
+npm run lint
 
-### 🧪 `tests/test_ui_and_formatting.py` (Testes de Formatação, Física Atmosférica e Conectores)
-8. `test_format_datetime_friendly`: Valida a conversão de timestamps ISO em formatos legíveis.
-9. `test_dew_point_calculation`: Valida os cálculos de ponto de orvalho em temperaturas e umidades conhecidas.
-10. `test_heat_index_calculation`: Valida a sensação térmica e os limiares de alerta de calor de Steadman/NOAA.
-11. `test_storm_risk_evaluation`: Valida o disparo barométrico do alerta de tempestade em baixa pressão.
-12. `test_air_quality_and_uv_classification`: Valida a classificação das faixas de poluição (AQI) e radiação UV.
-13. `test_climate_anomaly_calculation`: Valida a detecção de anomalias térmicas entre dados ao vivo e médias históricas.
-14. `test_parse_point_payload_with_forecast_and_indices`: Valida a transformação completa de payloads JSON da API.
-15. `test_load_exported_climaps_csv`: Testa a ingestão de CSVs exportados com separador ponto-e-vírgula.
-16. `test_load_exported_climaps_comma_csv`: Testa a ingestão de CSVs exportados com separador vírgula.
-17. `test_fetch_historical_day`: Valida a recuperação e formatação de telemetria de um dia histórico no ERA5.
-18. `test_fetch_annual_dataset_and_load_station_csv`: Valida o ciclo completo de baixar 1 ano via API e carregá-lo como `StationDataset`.
-19. `test_load_station_csv_from_bytes_and_stream`: Testa o carregamento de CSVs a partir de `bytes`, `StringIO` e `UploadedFile`.
-20. `test_comparison_metadata_detection`: Testa a identificação automática de anos e estações para a aba de comparação.
+# 2. Valida o bundle de produção (HTML, CSS Tailwind v4 e chunks JS)
+npm run build
 
----
+# 3. Inicia o servidor local de desenvolvimento na porta 3000
+npm run dev
+```
 
-> 💡 **Dica de Estudo:** Para rodar todos os testes no terminal, execute:
-> ```bash
-> python -m unittest discover -s tests -v
-> ```
+> 💡 **Dica de Estudo:** Para acompanhar como um dado sai de um arquivo do INMET ou da API da Open-Meteo até virar um gráfico na tela, leia os arquivos nesta ordem: `src/types/weather.ts` → `src/core/dataLoader.ts` → `src/core/analysis.ts` → `src/core/weatherApi.ts` → `src/App.tsx`.

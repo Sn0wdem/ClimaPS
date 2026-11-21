@@ -4,18 +4,17 @@
 <img width="1000" height="30" alt="divider" src="https://github.com/user-attachments/assets/ad9ec1c6-2ee9-44fe-880d-3e494c3f1b24" />
 <br>
 
-![Python](https://img.shields.io/badge/PYTHON-3.10+-38BDF8?style=for-the-badge&logo=python&logoColor=FFFFFF&labelColor=0F172A)
-![Docker](https://img.shields.io/badge/DOCKER-READY-2563EB?style=for-the-badge&logo=docker&logoColor=FFFFFF&labelColor=0F172A)
-![Streamlit](https://img.shields.io/badge/STREAMLIT-1.67+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=FFFFFF&labelColor=0F172A)
-![Plotly](https://img.shields.io/badge/PLOTLY-5.24+-6366F1?style=for-the-badge&logo=plotly&logoColor=FFFFFF&labelColor=0F172A)
-![Pandas](https://img.shields.io/badge/PANDAS-2.2+-10B981?style=for-the-badge&logo=pandas&logoColor=FFFFFF&labelColor=0F172A)
+![React](https://img.shields.io/badge/REACT-19-38BDF8?style=for-the-badge&logo=react&logoColor=FFFFFF&labelColor=0F172A)
+![TypeScript](https://img.shields.io/badge/TYPESCRIPT-5.7-2563EB?style=for-the-badge&logo=typescript&logoColor=FFFFFF&labelColor=0F172A)
+![Vite](https://img.shields.io/badge/VITE-6-6366F1?style=for-the-badge&logo=vite&logoColor=FFFFFF&labelColor=0F172A)
+![Tailwind CSS](https://img.shields.io/badge/TAILWIND_CSS-4-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=FFFFFF&labelColor=0F172A)
+![Recharts](https://img.shields.io/badge/RECHARTS-2.15-10B981?style=for-the-badge&labelColor=0F172A)
 ![Open-Meteo](https://img.shields.io/badge/OPEN--METEO-API_LIVRE-F59E0B?style=for-the-badge&logo=airplayvideo&logoColor=FFFFFF&labelColor=0F172A)
-![Tests](https://img.shields.io/badge/TESTS-20_PASSING-10B981?style=for-the-badge&logo=checkmarx&logoColor=FFFFFF&labelColor=0F172A)
 ![Theme](https://img.shields.io/badge/TEMA-DARK_%26_LIGHT-0284C7?style=for-the-badge&labelColor=0F172A)
 
 <br>
 
-**[🚀 QUICK START](#-quick-start)** &nbsp;·&nbsp; **[🐳 GUIA DE INSTALAÇÃO DO DOCKER](#-guia-completo-de-instalação-do-docker)** &nbsp;·&nbsp; **[⚡ RECURSOS](#-principais-recursos)** &nbsp;·&nbsp; **[🗂️ ABAS DO SISTEMA](#️-abas-do-sistema)** &nbsp;·&nbsp; **[🧱 ARQUITETURA](#-arquitetura-do-projeto)** &nbsp;·&nbsp; **[🧪 TESTES](#-testes-automatizados)**
+**[🚀 QUICK START](#-quick-start)** &nbsp;·&nbsp; **[⚡ RECURSOS](#-principais-recursos)** &nbsp;·&nbsp; **[🗂️ VISÕES DO WORKSPACE](#️-visões-do-workspace)** &nbsp;·&nbsp; **[🎨 DESIGN SYSTEM](#-design-system--interface)** &nbsp;·&nbsp; **[🧱 ARQUITETURA](#-arquitetura-do-projeto)** &nbsp;·&nbsp; **[📘 DICIONÁRIO](./dicionario.md)**
 
 <br>
 
@@ -27,16 +26,16 @@
 
 ## 🌐 O QUE É O CLIMAPS?
 
-O **ClimaPS** é uma plataforma analítica meteorológica moderna, de alta performance e visualmente sofisticada, desenvolvida em **Python** e **Streamlit**. 
+O **ClimaPS** é uma plataforma web moderna de telemetria meteorológica e análise forense de séries climáticas, desenvolvida em **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4** e **Recharts**.
 
-Projetada com foco em usabilidade, velocidade e precisão científica, a aplicação integra monitoramento em tempo real com análise forense de séries históricas:
+Projetada com arquitetura de workspace analítico de alta precisão — inspirada em painéis de observatório e laboratórios climáticos — a aplicação integra monitoramento global em tempo real com auditoria de séries históricas do INMET diretamente no navegador, sem necessidade de chaves de API ou servidores dedicados:
 
-1. **Monitoramento Global em Tempo Real:** Sem necessidade de cadastro, chaves ou configurações, consulte telemetria meteorológica de qualquer cidade ou coordenada do globo via API pública *Open-Meteo*, com radares ao vivo do *Windy.com*.
-2. **Meteorologia Avançada & Índices Bioclimáticos:** Alertas barométricos de tempestade, cálculo do Ponto de Orvalho (*Dew Point*), Índice de Calor (*Heat Index*) e monitoramento contínuo da Qualidade do Ar e Queimadas (*US AQI*, PM2.5, PM10, CO).
-3. **Calendário Histórico & Datasets Mundiais:** Consulte a telemetria horária de qualquer dia do passado via reanálise global ERA5 ou gere datasets anuais completos (8.760 horas) no mesmo formato do INMET para qualquer ponto da Terra.
-4. **Comparação Interanual (CSV):** Confronte dois anos climáticos ou duas estações diferentes lado a lado, com gráficos interativos de deltas de chuva e amplitudes térmicas.
-5. **Análise de Séries Históricas do INMET:** Importe séries horárias do INMET ou bases exportadas pelo sistema, aplique filtros de período e horário, audite a integridade dos dados e exporte em **CSV** ou scripts **SQL**.
-6. **Design Adaptativo Duplo (Dark & Light Mode):** Interface profissional com contraste balanceado tanto no Modo Escuro nativo quanto no Modo Claro (*White Mode*).
+1. **Monitoramento Global em Tempo Real:** Consulte telemetria meteorológica de qualquer cidade ou coordenada do planeta via API pública *Open-Meteo*, com radar animado ao vivo do *Windy.com*.
+2. **Meteorologia Avançada & Índices Bioclimáticos:** Avaliação de risco barométrico de tempestade, cálculo do Ponto de Orvalho (*Dew Point* — Magnus-Tetens), Índice de Calor (*Heat Index* — NOAA/Steadman) e monitoramento da Qualidade do Ar (*US AQI*, PM2.5, PM10, CO, NO₂ e O₃).
+3. **Calendário Histórico & Gerador de Séries Anuais (ERA5):** Inspecione a curva horária de qualquer dia do passado via reanálise global ECMWF ERA5 ou gere datasets anuais completos (8.760 horas) no padrão do INMET para qualquer coordenada da Terra.
+4. **Comparação Interanual (CSV e ERA5):** Confronte dois anos climáticos ou duas estações diferentes lado a lado — via arquivos salvos, upload de CSV ou geração instantânea via ERA5 — com KPIs consolidados, deltas mensais de precipitação e curvas térmicas sobrepostas.
+5. **Análise de Séries Históricas do INMET:** Importe CSVs horários do INMET ou bases exportadas pelo ClimaPS, aplique filtros de período, janela horária e dias chuvosos, audite a qualidade dos dados (IQR, lacunas, nulos e violações físicas), edite registros na sessão e exporte em **CSV** ou scripts **SQL**.
+6. **Interface de Precisão em Modo Escuro & Claro:** Navegação lateral fixa, cabeçalho contextual, tipografia técnica com dígitos tabulares (`JetBrains Mono`) e alternância instantânea entre tema **Escuro** (observatório) e **Claro** (laboratório clínico).
 
 ---
 
@@ -47,43 +46,43 @@ Projetada com foco em usabilidade, velocidade e precisão científica, a aplica�
 <td width="50%" valign="top">
 
 ### 🌍 TEMPO REAL & RADAR
-- Consulta de clima por **nome de cidade** ou coordenadas (`Latitude` / `Longitude`).
-- **Alertas de Tempestade**: monitoramento barométrico (< 1005 hPa), umidade e rajadas.
+- Busca por **nome de cidade** (geocodificação Open-Meteo) ou coordenadas (`Latitude` / `Longitude`).
+- **Tendência Barométrica & Tempestades**: monitoramento de pressão (< 1005 hPa), umidade, vento e rajadas.
 - **Índices Bioclimáticos**: Ponto de Orvalho (*Dew Point*) e Índice de Calor (*Heat Index* de Steadman/NOAA).
-- **Qualidade do Ar & Queimadas**: monitoramento de PM2.5, PM10, CO e *US AQI*.
-- **Radar Animado ao Vivo**: integração direta com o radar do **Windy.com**.
-- **Previsão Estendida**: previsão horária (24h) e diária (7 a 14 dias).
+- **Qualidade do Ar & Queimadas**: monitoramento retrátil de *US AQI*, PM2.5, PM10, CO, NO₂ e O₃.
+- **Radar Animado ao Vivo**: integração direta com camadas do **Windy.com** (chuva, vento, temperatura, nuvens e pressão).
+- **Previsão Estendida**: previsão horária (24h) e diária (7 a 14 dias) com ícones vetoriais limpos.
 
 </td>
 <td width="50%" valign="top">
 
 ### 📅 CALENDÁRIO & 📂 SÉRIES GLOBAIS
-- **Calendário Histórico**: consulte qualquer dia da história humana (reanálise global ERA5/Open-Meteo).
-- **Gerador Anual (8.760h)**: baixe 1 ano completo de qualquer lugar do mundo no padrão exato do INMET.
-- **Análise de Anomalias**: cruza a temperatura atual com a média histórica mensal da estação carregada.
-- **Duelo e Comparação Global**: pódio de extremos e tabela comparativa multiparâmetros.
-- **Carregamento Instantâneo**: carregue 30 dias recentes ou 1 ano inteiro direto nas abas analíticas.
+- **Calendário Histórico**: consulte qualquer data do passado (reanálise global ERA5/Open-Meteo) com detalhamento de 24h.
+- **Gerador Anual (8.760h)**: baixe 1 ano completo de qualquer ponto do globo no formato compatível com o INMET.
+- **Análise de Anomalias**: cruza a temperatura atual com a média histórica mensal da estação ativa na sessão.
+- **Monitoramento Global Comparativo**: resumo de extremos térmicos/pluviométricos e tabela comparativa multiparâmetros.
+- **Carga Instantânea**: injete 30 dias recentes ou 1 ano inteiro diretamente nas abas de Análise Histórica.
 
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 
-### ⚖️ COMPARAÇÃO ENTRE ANOS (CSV)
-- **Comparação Interanual**: compare dois arquivos CSV (Ano A vs. Ano B) ou duas cidades distintas.
-- **KPIs Consolidados**: precipitação acumulada, médias térmicas, recordes e dias com chuva.
-- **Gráficos com Deltas**: barras mensais de chuva com variação e sobreposição de curvas térmicas.
-- **Tabela Analítica**: matriz mensal detalhada com variação absoluta ($\Delta$) e percentual ($\%$).
+### ⚖️ COMPARAR ANOS (CSV / ERA5)
+- **Múltiplas Origens**: compare arquivos salvos na sessão, uploads CSV ou séries anuais geradas sob demanda via ERA5.
+- **KPIs Consolidados**: precipitação acumulada, médias térmicas, recordes, amplitude e dias com chuva.
+- **Gráficos Interativos**: barras mensais de chuva lado a lado e sobreposição de curvas de temperatura máxima e mínima.
+- **Matriz Analítica Mensal**: tabela alinhada com variação absoluta ($\Delta$) e percentual ($\%$) mês a mês.
 
 </td>
 <td width="50%" valign="top">
 
 ### 📊 ANÁLISE INMET & EXPORTAÇÃO
-- Importa **CSV horário do INMET** e CSVs exportados pelo ClimaPS (com vírgula ou ponto-e-vírgula).
-- Filtros por **período, horário e chuva**.
-- Auditoria de qualidade (**buracos temporais, nulos, outliers por IQR e violações físicas**).
-- **Matriz de correlação de Pearson** e insights automáticos.
-- **Tabela editável** na sessão e exportação em **CSV** ou script **SQL** (`CREATE TABLE` + `INSERT INTO`).
+- Parser universal para **CSV horário do INMET** e CSVs exportados pelo ClimaPS (separadores `;` ou `,`).
+- Filtros dinâmicos na barra lateral por **período, janela horária e ocorrência de chuva**.
+- Auditoria de qualidade (**lacunas temporais, valores nulos, outliers via IQR e violações físicas $T_{\max} < T_{\min}$**).
+- **Matriz de correlação de Pearson** com legenda de gradiente e insights automáticos.
+- **Tabela editável** na sessão e exportação em **CSV (UTF-8-SIG)** ou script **SQL** (`CREATE TABLE` + `INSERT INTO`).
 
 </td>
 </tr>
@@ -93,6 +92,10 @@ Projetada com foco em usabilidade, velocidade e precisão científica, a aplica�
 
 ## 🚀 QUICK START
 
+### Pré-requisitos
+- **Node.js 20+** (recomendado Node.js 22 LTS)
+- **npm** (incluso no Node.js)
+
 ### 1. Clonar o Repositório
 
 ```bash
@@ -100,240 +103,69 @@ git clone https://github.com/Guilherme-Nepomuceno/CLIMAPS.git
 cd CLIMAPS
 ```
 
-### 2. Rodar via Docker (Recomendado)
-
-Se você já possui o Docker instalado, basta executar:
+### 2. Instalar Dependências
 
 ```bash
-docker compose up -d --build
+npm install
 ```
 
-👉 Acesse no seu navegador: **http://localhost:8501**
+### 3. Iniciar o Servidor de Desenvolvimento
+
+```bash
+npm run dev
+```
+
+👉 Acesse no navegador: **http://localhost:3000**
+
+### Scripts Disponíveis
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Inicia o servidor Vite em modo de desenvolvimento na porta `3000` (`0.0.0.0`). |
+| `npm run lint` | Executa verificação estrita de tipos TypeScript (`tsc --noEmit`). |
+| `npm run build` | Compila e gera o bundle otimizado de produção em `dist/`. |
+| `npm run preview` | Serve localmente o build de produção na porta `3000` para validação final. |
+
+> **Sem chaves obrigatórias:** Todas as consultas de telemetria, geocodificação, qualidade do ar e reanálise histórica utilizam endpoints públicos da **Open-Meteo** diretamente pelo navegador. Veja `.env.example` para detalhes.
 
 ---
 
-## 🐳 GUIA COMPLETO DE INSTALAÇÃO DO DOCKER
+## 🗂️ VISÕES DO WORKSPACE
 
-O Docker permite rodar o ClimaPS com todas as suas dependências em um contêiner isolado, garantindo execução idêntica em qualquer sistema operacional, sem necessidade de configurar ambientes virtuais Python manualmente.
+A navegação é organizada em dois grupos na barra lateral fixa:
 
-### 🪟 Windows 10 e Windows 11
+### Monitoramento
 
-No Windows, a forma oficial e de melhor desempenho para usar o Docker é através do **Docker Desktop** integrado ao **WSL 2 (Subsistema do Windows para Linux)**.
+| Visão | O Que Oferece |
+|---|---|
+| **Mundo Ao Vivo** | Painel principal de telemetria global em tempo real, tendência barométrica de tempestades, Ponto de Orvalho, Índice de Calor, Qualidade do Ar (*US AQI*, PM2.5, PM10, CO), previsão horária/diária, Calendário Histórico (ERA5), download/carga de 1 ano completo (8.760h), radar animado Windy.com, extremos globais e tabela comparativa mundial. |
+| **Comparar Anos** | Confronto direto entre dois anos climáticos ou duas estações (via arquivos salvos, upload de CSV ou geração ERA5). Exibe KPIs comparativos, gráfico mensal de precipitação, curvas térmicas sobrepostas e matriz mensal de variações ($\Delta$ e $\%$). |
 
-#### Passo 1: Habilitar o WSL 2
-1. Abra o **PowerShell** ou o **Terminal do Windows** como **Administrador** (clique com o botão direito e selecione *"Executar como administrador"*).
-2. Execute o comando:
-   ```powershell
-   wsl --install
-   ```
-3. Se o WSL já estiver instalado, certifique-se de que está na versão 2:
-   ```powershell
-   wsl --set-default-version 2
-   ```
-4. **Reinicie o computador** para concluir a ativação dos recursos de virtualização do Windows.
+### Análise Histórica
 
-#### Passo 2: Baixar e Instalar o Docker Desktop
-1. Acesse o site oficial do Docker: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
-2. Clique no botão **"Download for Windows"** para baixar o instalador (`Docker Desktop Installer.exe`).
-3. Execute o instalador baixado.
-4. Na tela de instalação, certifique-se de que a opção **"Use WSL 2 instead of Hyper-V (recommended)"** esteja **marcada**.
-5. Conclua a instalação e reinicie o computador caso solicitado.
+| Visão | O Que Oferece |
+|---|---|
+| **Resumo e Qualidade** | KPIs centrais da estação ativa (total de medições, chuva acumulada, médias de $T_{\max}$ e $T_{\min}$, integridade temporal), resumo mensal, insights automáticos e auditoria rigorosa de qualidade de dados (lacunas, nulos, outliers IQR e violações físicas). |
+| **Gráficos e Correlação** | Precipitação mensal e distribuição horária da chuva, curva contínua de amplitude térmica diária e matriz de correlação de Pearson entre variáveis climáticas. |
+| **Tabela Editável** | Visualização e edição direta de células (`precipitacao_mm`, `temp_max_c`, `temp_min_c`) na sessão ativa para saneamento pontual antes da exportação. |
+| **Explorador** | Inspeção detalhada e paginada dos registros horários filtrados, com busca textual e ordenação para auditoria linha a linha. |
+| **Exportar CSV / SQL** | Download imediato da base completa ou do recorte filtrado em **CSV normalizado** (`;` UTF-8-SIG) ou script **SQL executável** (`CREATE TABLE` + `INSERT INTO`), com opção de registrar cópia na lista de arquivos da sessão. |
 
-#### Passo 3: Iniciar e Validar o Docker
-1. Abra o aplicativo **Docker Desktop** pelo Menu Iniciar e aguarde a inicialização (o ícone da baleia na barra de tarefas ficará estável).
-2. Abra o **PowerShell** ou o **CMD** e teste a instalação:
-   ```powershell
-   docker --version
-   docker compose version
-   ```
-3. Pronto! O Docker está pronto para uso no seu Windows.
+> **Base de Exemplo Inclusa:** Clique em **Abrir Manaus 2014** no cabeçalho superior (ou carregue `data/dados_A101_H_2014.csv` na barra lateral) para explorar imediatamente 8.760 horas de dados reais da estação INMET Manaus A101.
 
 ---
 
-### 🐧 Linux (Ubuntu, Debian, Pop!_OS, Mint e Derivados)
+## 🎨 DESIGN SYSTEM & INTERFACE
 
-No Linux, a forma recomendada é instalar o **Docker Engine** nativo via repositório oficial da Docker.
+A interface foi projetada com foco em densidade informacional, legibilidade científica e baixo ruído visual:
 
-#### Passo 1: Atualizar o Sistema e Remover Versões Antigas
-Abra o seu terminal e execute:
-```bash
-sudo apt-get remove -y docker docker-engine docker.io containerd runc
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg lsb-release
-```
-
-#### Passo 2: Adicionar a Chave GPG e o Repositório Oficial
-```bash
-# Cria o diretório de chaves se não existir
-sudo install -m 0755 -d /etc/apt/keyrings
-
-# Baixa a chave GPG oficial do Docker
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Adiciona o repositório oficial às fontes do APT
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-```
-*(Se estiver usando Debian ou derivado, substitua `ubuntu` por `debian` na URL acima).*
-
-#### Passo 3: Instalar o Docker Engine e o Docker Compose Plugin
-```bash
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
-
-#### Passo 4: Habilitar o Serviço e Configurar Permissões sem Sudo
-Para não precisar digitar `sudo` em todos os comandos Docker:
-```bash
-# Inicia e habilita o serviço na inicialização do sistema
-sudo systemctl enable --now docker
-
-# Adiciona o seu usuário atual ao grupo docker
-sudo usermod -aG docker $USER
-
-# Aplica a permissão na sessão atual sem precisar deslogar
-newgrp docker
-```
-
-#### Passo 5: Testar a Instalação
-```bash
-docker --version
-docker compose version
-docker run hello-world
-```
-
-<details>
-<summary><b>📦 Fedora / RHEL / CentOS</b></summary>
-
-```bash
-sudo dnf -y install dnf-plugins-core
-sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-</details>
-
-<details>
-<summary><b>📦 Arch Linux / Manjaro</b></summary>
-
-```bash
-sudo pacman -Syu --noconfirm docker docker-compose
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-</details>
-
----
-
-### 🍎 macOS (Apple Silicon M1/M2/M3/M4 e Intel)
-
-No macOS, utilize o **Docker Desktop para Mac**, que inclui o motor Docker, interface gráfica e o plugin Compose.
-
-#### Passo 1: Baixar o Instalador
-1. Acesse: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
-2. Escolha a versão correspondente ao seu chip:
-   - **"Mac with Apple Chip"**: para Macs com processadores **M1, M2, M3 ou M4**.
-   - **"Mac with Intel Chip"**: para Macs mais antigos com processadores **Intel**.
-
-#### Passo 2: Instalar
-1. Abra o arquivo `.dmg` baixado.
-2. Arraste o ícone do **Docker.app** para a pasta **Applications (Aplicativos)**.
-3. Abra o **Docker** a partir da pasta de Aplicativos ou pelo Spotlight (`Cmd + Espaço`).
-4. Aceite os termos de serviço e insira sua senha de administrador caso o macOS solicite permissões de virtualização.
-
-#### Passo 3: Testar no Terminal
-Abra o **Terminal** do macOS (`Cmd + Espaço` e digite `Terminal`):
-```bash
-docker --version
-docker compose version
-```
-
----
-
-### 🚀 Rodando o ClimaPS com Docker
-
-Com o Docker instalado em qualquer sistema (Windows, Linux ou macOS), clone o repositório e inicie o projeto:
-
-```bash
-# 1. Entre na pasta do projeto
-cd CLIMAPS
-
-# 2. Construa a imagem e inicie o contêiner em segundo plano
-docker compose up -d --build
-```
-
-- Acesse a interface web em: **http://localhost:8501**
-- Os dados baixados e exportados são sincronizados automaticamente em tempo real com as pastas locais `./data/importados` e `./exportacoes`.
-
-<details>
-<summary><b>🛠️ Comandos Úteis do Docker</b></summary>
-
-```bash
-# Ver logs da aplicação em tempo real
-docker compose logs -f
-
-# Parar o contêiner
-docker compose down
-
-# Executar a suíte de 20 testes unitários dentro do contêiner
-docker compose run --rm climaps python -m unittest discover -s tests -v
-
-# Reiniciar o contêiner após alterações
-docker restart climaps-app
-```
-
-</details>
-
----
-
-### 🐍 Instalação Local (Sem Docker)
-
-Caso prefira rodar diretamente no seu ambiente Python (3.10+):
-
-<details>
-<summary><b>Instruções para Windows / Linux / macOS</b></summary>
-
-```bash
-# 1. Crie o ambiente virtual
-python3 -m venv .venv
-
-# 2. Ative o ambiente virtual
-# No Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# No Linux / macOS:
-source .venv/bin/activate
-
-# 3. Instale as dependências
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# 4. Inicie o Streamlit
-python -m streamlit run app_streamlit.py --server.port 8501
-```
-
-</details>
-
----
-
-## 🗂️ ABAS DO SISTEMA
-
-| Ícone | Nome da Aba | O Que Oferece |
-|:---:|---|---|
-| 🌍 | **Mundo Ao Vivo** | Clima em tempo real global, alertas barométricos de tempestade, Ponto de Orvalho, Índice de Calor, Qualidade do Ar (AQI/PM2.5/PM10/CO), Calendário Histórico (ERA5), download de 1 ano completo (8.760h), radar animado Windy.com, pódio de extremos e tabela comparativa mundial. |
-| ⚖️ | **Comparação entre Anos (CSV)** | Confronto analítico direto entre dois anos (Ano A vs. Ano B) ou duas estações diferentes. KPIs anuais lado a lado, gráficos de barras com deltas de chuva, sobreposição de curvas térmicas e tabela de variações mensais ($\Delta$ e $\%$). |
-| 📊 | **Resumo & Indicadores** | KPIs centrais da estação (total de medições, chuva acumulada, médias de $T_{\max}$ e $T_{\min}$, completude temporal), gráfico combinado de precipitação mensal e amplitude térmica, insights automatizados e diagnóstico rigoroso de qualidade de dados. |
-| 📈 | **Gráficos & Tendências** | Gráfico de distribuição horária da chuva, curva contínua de amplitude térmica com preenchimento translúcido e matriz de correlação de Pearson com paleta de alta legibilidade. |
-| 📋 | **Tabela de Dados** | Visualização interativa e edição direta de registros (chuva, $T_{\max}$, $T_{\min}$) na memória da sessão, permitindo correções pontuais antes da exportação. |
-| 🔍 | **Explorador de Registros** | Inspeção detalhada de cada medição horária, respeitando os filtros ativos de período, janela horária e ocorrência de chuva. |
-| 💾 | **Exportar** | Download imediato da base ativa em formato **CSV normalizado** ou script **SQL completo** (`CREATE TABLE` + `INSERT INTO`), com cópia de segurança salva automaticamente na pasta `exportacoes/`. |
+- **Sistema Tipográfico (2 + 1):**
+  - **Display:** `Plus Jakarta Sans` para títulos e cabeçalhos.
+  - **Interface:** `DM Sans` para rótulos, navegação e textos analíticos.
+  - **Telemetria:** `JetBrains Mono` com `font-variant-numeric: tabular-nums` em todos os números, coordenadas, horários e colunas numéricas alinhadas à direita.
+- **Dual-Theme Nativo (`Escuro` / `Claro`):**
+  - Variáveis semânticas em `src/index.css` com `@custom-variant dark` do Tailwind CSS v4.
+  - Superfícies com bordas sutis de precisão, controles segmentados, estados de carregamento em *skeleton* e ícones vetoriais (`lucide-react`).
 
 ---
 
@@ -342,31 +174,29 @@ python -m streamlit run app_streamlit.py --server.port 8501
 ```mermaid
 flowchart TD
     subgraph Fontes de Dados
-        A[🌐 Open-Meteo REST API\nTempo Real & Qualidade do Ar]
-        B[📅 ECMWF Reanálise ERA5\nQualquer Dia da História]
-        C[📄 Datasets INMET / CSVs\nHistóricos & Exportados]
+        A[Open-Meteo REST API\nTempo Real, Previsão & Qualidade do Ar]
+        B[ECMWF Reanálise ERA5\nCalendário Histórico & Séries 8.760h]
+        C[CSVs INMET / ClimaPS\nUpload Local & Base Manaus A101]
     end
 
-    subgraph Camada de Ingestão & Conectores
-        W[weather_api.py\nFetchers, Parsers e Bundles]
-        D[data_loader.py\nParser Universal INMET/CSV]
+    subgraph Camada de Domínio e Conectores - src/core
+        W[weatherApi.ts\nFetchers, Cache TTL & WMO]
+        D[dataLoader.ts\nParser INMET/CSV & Exportadores CSV/SQL]
+        N[analysis.ts\nFísica Atmosférica, KPIs, Filtros,\nIQR, Correlação & Anomalias]
+        F[formatters.ts & weatherIcons.tsx\nFormatação PT-BR & Ícones Vetoriais]
     end
 
-    subgraph Núcleo Analítico
-        N[analysis.py\nPonto de Orvalho, Heat Index, Alertas,\nAnomalias, KPIs, IQR, Correlações]
+    subgraph Interface React - src/components
+        APP[App.tsx\nEstado da Sessão, Tema & Roteamento de Visões]
+        SB[Sidebar.tsx & HeaderBanner.tsx\nNavegação Fixa, Upload, Filtros & Contexto]
+        WL[WorldLiveTab.tsx\nTelemetria Ao Vivo, ERA5 & Radar Windy]
+        CP[ComparisonTab.tsx\nComparação Interanual CSV/ERA5]
+        AT[AnalyticsTabs.tsx\nResumo, Gráficos, Tabela, Explorador & Exportar]
+        MC[MetricCard.tsx\nCartões de Telemetria Calibrados]
     end
 
-    subgraph Interface & Visualização Streamlit
-        APP[app_streamlit.py\nOrquestrador de Abas & Sessão]
-        UW[ui_world.py\nMundo Ao Vivo, Calendário & Windy]
-        UC[ui_comparison.py\nComparação Interanual de CSVs]
-        UT[ui_tabs.py\nResumo, Gráficos, Editor & Explorador]
-        US[ui_styles.py\nTemas Dark/Light & Layout CSS]
-    end
-
-    subgraph Persistência & Saídas
-        EXP[💾 CSV Normalizado & Script SQL\nexportacoes/]
-        IMP[📂 Datasets Anuais Gerados\ndata/importados/]
+    subgraph Saídas
+        OUT[Download CSV UTF-8-SIG & Script SQL]
     end
 
     A --> W
@@ -374,93 +204,72 @@ flowchart TD
     C --> D
     W --> N
     D --> N
-    W --> UW
+    F --> WL
+    F --> AT
+    W --> WL
+    W --> CP
     D --> APP
     N --> APP
-    APP --> UW
-    APP --> UC
-    APP --> UT
-    US --> APP
-    UW --> IMP
-    APP --> EXP
+    APP --> SB
+    APP --> WL
+    APP --> CP
+    APP --> AT
+    MC --> WL
+    MC --> CP
+    MC --> AT
+    AT --> OUT
 ```
 
 ### 📁 Estrutura de Arquivos
 
 ```text
 .
-├── app_streamlit.py              # Ponto de entrada e orquestrador das 7 abas do Streamlit
-├── Dockerfile                    # Configuração da imagem de produção (Python 3.12-slim)
-├── docker-compose.yml            # Orquestração com volumes persistentes para importações e exportações
-├── .dockerignore                 # Arquivos excluídos do contexto do contêiner
-├── .streamlit/
-│   └── config.toml               # Configuração do tema base do Streamlit
-├── climaps/
-│   ├── __init__.py
-│   ├── ui_styles.py              # Sistema de estilos adaptativo (Modo Claro & Modo Escuro)
-│   ├── ui_world.py               # Aba Mundo Ao Vivo (API, Calendário ERA5, Anomalias e Windy)
-│   ├── ui_comparison.py          # Aba Comparação entre Anos (Duelo de safras e séries CSV)
-│   ├── ui_tabs.py                # Abas analíticas (Resumo, Gráficos, Tabela editável e Explorador)
-│   └── core/
-│       ├── __init__.py
-│       ├── data_loader.py        # Ingestão universal de CSVs do INMET e exportações
-│       ├── analysis.py           # Física atmosférica, KPIs, filtros, IQR e qualidade
-│       └── weather_api.py        # Conectores com Open-Meteo, ERA5, Qualidade do Ar e Séries Anuais
+├── index.html                        # Entrada HTML, fontes (Plus Jakarta Sans, DM Sans, JetBrains Mono) e metadados
+├── package.json                      # Dependências e scripts Vite/TypeScript
+├── vite.config.ts                    # Configuração do Vite + plugin Tailwind CSS v4
+├── tsconfig.json                     # Configuração estrita do compilador TypeScript
+├── .env.example                      # Documentação das variáveis de ambiente (endpoints públicos sem chave)
+├── public/
+│   └── data/
+│       └── dados_A101_H_2014.csv     # Dataset de exemplo servido pela aplicação (Manaus A101 - 8.760h)
 ├── data/
-│   ├── dados_A101_H_2014.csv     # Dataset base de exemplo (Manaus A101 - 8.760 horas de 2014)
-│   └── importados/               # CSVs importados e datasets de 1 ano baixados pela interface
-├── exportacoes/                  # CSVs e scripts SQL gerados pelo usuário
-├── tests/
-│   ├── test_analysis.py          # 7 testes analíticos de integridade de dados e KPIs do INMET
-│   └── test_ui_and_formatting.py # 13 testes de física atmosférica, API, ERA5, streams e comparação
-├── dicionario.md                 # Dicionário didático completo do projeto para estudo acadêmico
-├── requirements.txt              # Dependências estritas da aplicação
+│   └── dados_A101_H_2014.csv         # Cópia de referência do dataset base INMET
+├── src/
+│   ├── main.tsx                      # Bootstrap da árvore React
+│   ├── index.css                     # Design tokens Light/Dark, utilitários de superfície, tabelas e animações
+│   ├── App.tsx                       # Orquestrador da sessão, estado dos datasets, filtros, tema e notificações
+│   ├── types/
+│   │   └── weather.ts                # Interfaces TypeScript (WeatherRecord, StationDataset, KPIs, APIs)
+│   ├── core/
+│   │   ├── analysis.ts               # Física atmosférica, filtros, KPIs, IQR, qualidade, insights e Pearson
+│   │   ├── dataLoader.ts             # Parser universal INMET/CSV e geradores de exportação CSV e SQL
+│   │   ├── weatherApi.ts             # Conectores Open-Meteo (Geocoding, Forecast, AQI, ERA5) + cache TTL
+│   │   ├── formatters.ts             # Formatação PT-BR de números, datas e nomes seguros de arquivos
+│   │   └── weatherIcons.tsx          # Mapeamento vetorial de condições climáticas WMO
+│   └── components/
+│       ├── Sidebar.tsx               # Barra lateral fixa (navegação, upload CSV, filtros e tema)
+│       ├── HeaderBanner.tsx          # Cabeçalho contextual sticky com metadados da estação e CTA
+│       ├── MetricCard.tsx            # Cartão de métrica científica com separação valor/unidade
+│       ├── WorldLiveTab.tsx          # Monitoramento ao vivo, previsão, AQI, ERA5, radar Windy e tabela global
+│       ├── ComparisonTab.tsx         # Comparação interanual entre arquivos CSV e séries ERA5
+│       └── AnalyticsTabs.tsx         # Resumo, Gráficos, Tabela Editável, Explorador, Exportar e Empty State
+├── dicionario.md                     # Dicionário didático completo da arquitetura, código e meteorologia
 └── README.md
 ```
 
 ---
 
-## 🧪 TESTES AUTOMATIZADOS
+## ✅ VERIFICAÇÃO DE QUALIDADE E BUILD
 
-O ClimaPS possui uma suíte rigorosa de **20 testes unitários automatizados** implementados com o framework padrão `unittest` do Python, garantindo integridade matemática, física e operacional.
+Antes de publicar ou abrir um Pull Request, valide a tipagem estrita e o build de produção:
 
-### Executando os Testes
-
-**Via Docker:**
 ```bash
-docker compose run --rm climaps python -m unittest discover -s tests -v
+# Checagem completa de tipos TypeScript (sem emitir arquivos)
+npm run lint
+
+# Build otimizado de produção via Vite
+npm run build
 ```
-
-**Localmente:**
-```bash
-python -m unittest discover -s tests -v
-```
-
-<details>
-<summary><b>📋 Lista dos 20 Testes Executados</b></summary>
-
-1. `test_metadata_and_shape`: Extração de metadados e contagem exata das 8.760 horas anuais.
-2. `test_missing_values`: Tratamento e conformidade de registros nulos.
-3. `test_kpis`: Exatidão dos cálculos de chuva acumulada e médias térmicas.
-4. `test_march_is_rainiest`: Validação estatística de março como o mês mais chuvoso da série padrão.
-5. `test_filter_january_afternoon`: Combinação de filtros temporais e horários.
-6. `test_quality_rules`: Diagnóstico de falhas de qualidade, buracos de série e outliers.
-7. `test_complete_hourly_timeline`: Verificação de continuidade temporal sem lacunas.
-8. `test_format_datetime_friendly`: Formatação humanizada de datas e horas.
-9. `test_dew_point_calculation`: Validação do algoritmo de Magnus-Tetens para Ponto de Orvalho.
-10. `test_heat_index_calculation`: Validação da equação multivariada do Heat Index (NOAA/Steadman).
-11. `test_storm_risk_evaluation`: Validação do gatilho barométrico para detecção de tempestades.
-12. `test_air_quality_and_uv_classification`: Classificação de faixas de poluição (AQI) e radiação UV.
-13. `test_climate_anomaly_calculation`: Cálculo de anomalia relativa entre tempo real e médias históricas.
-14. `test_parse_point_payload_with_forecast_and_indices`: Parser de payloads meteorológicos da API.
-15. `test_load_exported_climaps_csv`: Ingestão de CSVs exportados com separador ponto-e-vírgula (`;`).
-16. `test_load_exported_climaps_comma_csv`: Ingestão de CSVs exportados com separador vírgula (`,`).
-17. `test_fetch_historical_day`: Consulta de dados de reanálise horária (ERA5) em datas históricas.
-18. `test_fetch_annual_dataset_and_load_station_csv`: Ciclo completo de download de 1 ano e conversão em `StationDataset`.
-19. `test_load_station_csv_from_bytes_and_stream`: Ingestão direta a partir de `bytes`, `StringIO` e `UploadedFile`.
-20. `test_comparison_metadata_detection`: Identificação automática de safras e estações na aba de comparação.
-
-</details>
 
 ---
 
