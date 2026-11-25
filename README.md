@@ -9,6 +9,7 @@
 ![Vite](https://img.shields.io/badge/VITE-6-6366F1?style=for-the-badge&logo=vite&logoColor=FFFFFF&labelColor=0F172A)
 ![Tailwind CSS](https://img.shields.io/badge/TAILWIND_CSS-4-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=FFFFFF&labelColor=0F172A)
 ![Recharts](https://img.shields.io/badge/RECHARTS-2.15-10B981?style=for-the-badge&labelColor=0F172A)
+![jsPDF](https://img.shields.io/badge/JSPDF-RELATORIO_PDF-DC2626?style=for-the-badge&labelColor=0F172A)
 ![Open-Meteo](https://img.shields.io/badge/OPEN--METEO-API_LIVRE-F59E0B?style=for-the-badge&logo=airplayvideo&logoColor=FFFFFF&labelColor=0F172A)
 ![Theme](https://img.shields.io/badge/TEMA-DARK_%26_LIGHT-0284C7?style=for-the-badge&labelColor=0F172A)
 
@@ -34,7 +35,7 @@ Projetada com arquitetura de workspace analítico de alta precisão — inspirad
 2. **Meteorologia Avançada & Índices Bioclimáticos:** Avaliação de risco barométrico de tempestade, cálculo do Ponto de Orvalho (*Dew Point* — Magnus-Tetens), Índice de Calor (*Heat Index* — NOAA/Steadman) e monitoramento da Qualidade do Ar (*US AQI*, PM2.5, PM10, CO, NO₂ e O₃).
 3. **Calendário Histórico & Gerador de Séries Anuais (ERA5):** Inspecione a curva horária de qualquer dia do passado via reanálise global ECMWF ERA5 ou gere datasets anuais completos (8.760 horas) no padrão do INMET para qualquer coordenada da Terra.
 4. **Comparação Interanual (CSV e ERA5):** Confronte dois anos climáticos ou duas estações diferentes lado a lado — via arquivos salvos, upload de CSV ou geração instantânea via ERA5 — com KPIs consolidados, deltas mensais de precipitação e curvas térmicas sobrepostas.
-5. **Análise de Séries Históricas do INMET:** Importe CSVs horários do INMET ou bases exportadas pelo ClimaPS, aplique filtros de período, janela horária e dias chuvosos, audite a qualidade dos dados (IQR, lacunas, nulos e violações físicas), edite registros na sessão e exporte em **CSV** ou scripts **SQL**.
+5. **Análise Forense do INMET, Monitoramento e Relatórios:** Importe CSVs horários do INMET ou bases exportadas pelo ClimaPS, aplique filtros de período e horário, visualize histograma de precipitação com densidade de extremos, acompanhe lacunas por coluna (destaque `> 10%`), monitore anomalias por desvio padrão ($z$-score) com badges de alerta na tabela e exporte em **PDF estruturado (A4)**, **CSV** ou **SQL**.
 6. **Interface de Precisão em Modo Escuro & Claro:** Navegação lateral fixa, cabeçalho contextual, tipografia técnica com dígitos tabulares (`JetBrains Mono`) e alternância instantânea entre tema **Escuro** (observatório) e **Claro** (laboratório clínico).
 
 ---
@@ -77,12 +78,12 @@ Projetada com arquitetura de workspace analítico de alta precisão — inspirad
 </td>
 <td width="50%" valign="top">
 
-### 📊 ANÁLISE INMET & EXPORTAÇÃO
+### 📊 ANÁLISE INMET, AUDITORIA & PDF
 - Parser universal para **CSV horário do INMET** e CSVs exportados pelo ClimaPS (separadores `;` ou `,`).
-- Filtros dinâmicos na barra lateral por **período, janela horária e ocorrência de chuva**.
-- Auditoria de qualidade (**lacunas temporais, valores nulos, outliers via IQR e violações físicas $T_{\max} < T_{\min}$**).
-- **Matriz de correlação de Pearson** com legenda de gradiente e insights automáticos.
-- **Tabela editável** na sessão e exportação em **CSV (UTF-8-SIG)** ou script **SQL** (`CREATE TABLE` + `INSERT INTO`).
+- **Auditoria de Qualidade & Lacunas**: calcula `%` de nulos/`NaN` por coluna (destaque automático `> 10%`), lacunas temporais, violações físicas ($T_{\max} < T_{\min}$, chuva negativa e teto físico `> 150 mm/h`) e **IQR calibrado apenas sobre horas com chuva (`> 0 mm`)**.
+- **Histograma de Precipitação & Extremos**: distribuição das horas chuvosas destacando a cauda extrema acima de $Q_3 + 1{,}5 \times \text{IQR}$ com zoom e alternância entre densidade (`%`) e frequência (`h`).
+- **Monitoramento Climatológico ($\mu \pm k\sigma$)**: tabela paginada com badges visuais de alerta/crítico para registros fora dos limites históricos (`1,5σ` a `3,0σ`).
+- **Exportação Completa**: gere **Relatórios Estruturados em PDF (A4)** com gráficos em alta resolução, além de **CSV (UTF-8-SIG)** e script **SQL** (`CREATE TABLE` + `INSERT INTO`).
 
 </td>
 </tr>
@@ -145,11 +146,11 @@ A navegação é organizada em dois grupos na barra lateral fixa:
 
 | Visão | O Que Oferece |
 |---|---|
-| **Resumo e Qualidade** | KPIs centrais da estação ativa (total de medições, chuva acumulada, médias de $T_{\max}$ e $T_{\min}$, integridade temporal), resumo mensal, insights automáticos e auditoria rigorosa de qualidade de dados (lacunas, nulos, outliers IQR e violações físicas). |
+| **Resumo e Qualidade** | KPIs centrais da estação, destaques automáticos, **Histograma de Precipitação e Densidade de Extremos** (IQR em horas chuvosas), **Dados Faltantes por Coluna** com destaque acima de `10%`, **Monitoramento de Limites Climatológicos** por desvio padrão ($z$-score) com badges de alerta na tabela, resumo mensal e auditoria de integridade física/temporal. |
 | **Gráficos e Correlação** | Precipitação mensal e distribuição horária da chuva, curva contínua de amplitude térmica diária e matriz de correlação de Pearson entre variáveis climáticas. |
 | **Tabela Editável** | Visualização e edição direta de células (`precipitacao_mm`, `temp_max_c`, `temp_min_c`) na sessão ativa para saneamento pontual antes da exportação. |
 | **Explorador** | Inspeção detalhada e paginada dos registros horários filtrados, com busca textual e ordenação para auditoria linha a linha. |
-| **Exportar CSV / SQL** | Download imediato da base completa ou do recorte filtrado em **CSV normalizado** (`;` UTF-8-SIG) ou script **SQL executável** (`CREATE TABLE` + `INSERT INTO`), com opção de registrar cópia na lista de arquivos da sessão. |
+| **Exportar CSV / SQL / PDF** | Geração de **Relatório Estruturado em PDF (A4)** com seções selecionáveis e gráficos em alta resolução, além de download imediato em **CSV normalizado** (`;` UTF-8-SIG), script **SQL** (`CREATE TABLE` + `INSERT INTO`) e salvamento de cópia na sessão. |
 
 > **Base de Exemplo Inclusa:** Clique em **Abrir Manaus 2014** no cabeçalho superior (ou carregue `data/dados_A101_H_2014.csv` na barra lateral) para explorar imediatamente 8.760 horas de dados reais da estação INMET Manaus A101.
 
@@ -182,7 +183,8 @@ flowchart TD
     subgraph Camada de Domínio e Conectores - src/core
         W[weatherApi.ts\nFetchers, Cache TTL & WMO]
         D[dataLoader.ts\nParser INMET/CSV & Exportadores CSV/SQL]
-        N[analysis.ts\nFísica Atmosférica, KPIs, Filtros,\nIQR, Correlação & Anomalias]
+        N[analysis.ts\nFísica Atmosférica, KPIs, IQR > 0 mm,\nHistograma, Lacunas, Z-Score & Pearson]
+        P[pdfReport.ts\nRelatório A4 em PDF & Gráficos Canvas]
         F[formatters.ts & weatherIcons.tsx\nFormatação PT-BR & Ícones Vetoriais]
     end
 
@@ -191,12 +193,12 @@ flowchart TD
         SB[Sidebar.tsx & HeaderBanner.tsx\nNavegação Fixa, Upload, Filtros & Contexto]
         WL[WorldLiveTab.tsx\nTelemetria Ao Vivo, ERA5 & Radar Windy]
         CP[ComparisonTab.tsx\nComparação Interanual CSV/ERA5]
-        AT[AnalyticsTabs.tsx\nResumo, Gráficos, Tabela, Explorador & Exportar]
+        AT[AnalyticsTabs.tsx\nResumo, Histograma, Alertas σ, Gráficos,\nTabela Editável, Explorador & Exportar]
         MC[MetricCard.tsx\nCartões de Telemetria Calibrados]
     end
 
     subgraph Saídas
-        OUT[Download CSV UTF-8-SIG & Script SQL]
+        OUT[Relatório PDF A4, CSV UTF-8-SIG & Script SQL]
     end
 
     A --> W
@@ -204,12 +206,14 @@ flowchart TD
     C --> D
     W --> N
     D --> N
+    N --> P
     F --> WL
     F --> AT
     W --> WL
     W --> CP
     D --> APP
     N --> APP
+    P --> AT
     APP --> SB
     APP --> WL
     APP --> CP
@@ -239,10 +243,11 @@ flowchart TD
 │   ├── index.css                     # Design tokens Light/Dark, utilitários de superfície, tabelas e animações
 │   ├── App.tsx                       # Orquestrador da sessão, estado dos datasets, filtros, tema e notificações
 │   ├── types/
-│   │   └── weather.ts                # Interfaces TypeScript (WeatherRecord, StationDataset, KPIs, APIs)
+│   │   └── weather.ts                # Interfaces TypeScript (WeatherRecord, KPIs, Histograma, Alertas σ, APIs)
 │   ├── core/
-│   │   ├── analysis.ts               # Física atmosférica, filtros, KPIs, IQR, qualidade, insights e Pearson
-│   │   ├── dataLoader.ts             # Parser universal INMET/CSV e geradores de exportação CSV e SQL
+│   │   ├── analysis.ts               # Física atmosférica, filtros, KPIs, IQR > 0 mm, histograma, lacunas, z-score e Pearson
+│   │   ├── dataLoader.ts             # Parser universal INMET/CSV (com auditoria de colunas extras) e exportadores CSV/SQL
+│   │   ├── pdfReport.ts              # Gerador de Relatório Estruturado em PDF (A4) com gráficos em Canvas de alta resolução
 │   │   ├── weatherApi.ts             # Conectores Open-Meteo (Geocoding, Forecast, AQI, ERA5) + cache TTL
 │   │   ├── formatters.ts             # Formatação PT-BR de números, datas e nomes seguros de arquivos
 │   │   └── weatherIcons.tsx          # Mapeamento vetorial de condições climáticas WMO
@@ -252,7 +257,7 @@ flowchart TD
 │       ├── MetricCard.tsx            # Cartão de métrica científica com separação valor/unidade
 │       ├── WorldLiveTab.tsx          # Monitoramento ao vivo, previsão, AQI, ERA5, radar Windy e tabela global
 │       ├── ComparisonTab.tsx         # Comparação interanual entre arquivos CSV e séries ERA5
-│       └── AnalyticsTabs.tsx         # Resumo, Gráficos, Tabela Editável, Explorador, Exportar e Empty State
+│       └── AnalyticsTabs.tsx         # Resumo, Histograma, Lacunas, Alertas σ, Gráficos, Tabela, Explorador e Exportar CSV/SQL/PDF
 ├── dicionario.md                     # Dicionário didático completo da arquitetura, código e meteorologia
 └── README.md
 ```
