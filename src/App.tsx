@@ -259,7 +259,12 @@ export default function App() {
           )}
 
           {hasDataset && activeTab === 'resumo' && (
-            <SummaryTab filtered={filteredRecords} fullRecords={records} />
+            <SummaryTab
+              filtered={filteredRecords}
+              fullRecords={records}
+              extraColumns={dataset?.extraColumnMissing}
+              isDark={isDark}
+            />
           )}
 
           {hasDataset && activeTab === 'graficos' && (
@@ -279,10 +284,12 @@ export default function App() {
 
           {hasDataset && activeTab === 'explorador' && <ExplorerTab filtered={filteredRecords} />}
 
-          {hasDataset && activeTab === 'exportar' && (
+          {hasDataset && dataset && activeTab === 'exportar' && (
             <ExportTab
+              dataset={dataset}
               fullRecords={records}
               filtered={filteredRecords}
+              filterSpec={filterSpec}
               onSaveExportCopy={handleSaveExportCopy}
             />
           )}

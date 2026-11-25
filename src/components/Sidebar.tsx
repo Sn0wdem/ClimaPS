@@ -50,7 +50,7 @@ const ANALYSIS_NAV: Array<{ key: TabKey; label: string; icon: React.ComponentTyp
   { key: 'graficos', label: 'Gráficos e Correlação', icon: LineChart },
   { key: 'tabela', label: 'Tabela Editável', icon: Table2 },
   { key: 'explorador', label: 'Explorador', icon: Search },
-  { key: 'exportar', label: 'Exportar CSV / SQL', icon: Download },
+  { key: 'exportar', label: 'Exportar CSV / SQL / PDF', icon: Download },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({

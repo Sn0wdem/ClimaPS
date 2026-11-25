@@ -1,4 +1,4 @@
-import type { StationDataset, WeatherRecord } from '../types/weather';
+import type { ColumnMissingStat, StationDataset, WeatherRecord } from '../types/weather';
 
 const COLUNAS_INTERNAS: Record<string, string> = {
   'Data Medicao': 'data',
@@ -159,6 +159,21 @@ export function parseStationCsv(csvText: string, sourceName = 'upload.csv'): Sta
     throw new Error("O CSV precisa conter uma coluna de data/hora ('data_hora' ou 'data').");
   }
 
+  const coreMappedIndices = new Set<number>([idxRain, idxMax, idxMin, idxDataHora, idxData, idxHora].filter((i) => i >= 0));
+  const ignoredDerivedNames = new Set(['hora_num', 'mes', 'dia']);
+  const extraColDefs: Array<{ idx: number; key: string; label: string; missingCount: number }> = [];
+  rawHeaders.forEach((rawName, idx) => {
+    const trimmed = rawName.trim();
+    const mapped = mappedHeaders[idx];
+    if (!trimmed || coreMappedIndices.has(idx) || ignoredDerivedNames.has(mapped)) return;
+    extraColDefs.push({
+      idx,
+      key: normalizarChave(trimmed) || `col_${idx}`,
+      label: trimmed,
+      missingCount: 0,
+    });
+  });
+
   const records: WeatherRecord[] = [];
   for (let i = headerIndex + 1; i < linhas.length; i++) {
     const line = linhas[i].trim();
@@ -171,6 +186,14 @@ export function parseStationCsv(csvText: string, sourceName = 'upload.csv'): Sta
         : parseDateTimeComponents(cols[idxData] ?? '', idxHora !== -1 ? cols[idxHora] : undefined);
 
     if (!parsedDt) continue;
+
+    for (let e = 0; e < extraColDefs.length; e++) {
+      const def = extraColDefs[e];
+      const cell = (cols[def.idx] ?? '').trim().replace(/^"|"$/g, '');
+      if (NA_VALUES.has(cell) || cell.toLowerCase() === 'na' || cell.toLowerCase() === 'n/a') {
+        def.missingCount++;
+      }
+    }
 
     const rain = parseNumeric(cols[idxRain], decimalSep);
     const tMax = parseNumeric(cols[idxMax], decimalSep);
@@ -196,6 +219,21 @@ export function parseStationCsv(csvText: string, sourceName = 'upload.csv'): Sta
     r.id = idx;
   });
 
+  const totalRows = records.length;
+  const extraColumnMissing: ColumnMissingStat[] = extraColDefs.map((def) => {
+    const missingPct = totalRows > 0 ? (def.missingCount / totalRows) * 100 : 0;
+    return {
+      key: def.key,
+      label: def.label,
+      total: totalRows,
+      missingCount: def.missingCount,
+      validCount: totalRows - def.missingCount,
+      missingPct,
+      exceedsThreshold: missingPct > 10,
+      source: 'extra',
+    };
+  });
+
   if (Object.keys(metadata).length === 0) {
     const stem = sourceName.replace(/\.csv$/i, '');
     const cleanName = stem
@@ -208,7 +246,12 @@ export function parseStationCsv(csvText: string, sourceName = 'upload.csv'): Sta
     metadata.fonte = 'ClimaPS / Exportação';
   }
 
-  return { metadata, data: records, sourceName };
+  return {
+    metadata,
+    data: records,
+    sourceName,
+    extraColumnMissing: extraColumnMissing.length > 0 ? extraColumnMissing : undefined,
+  };
 }
 
 function formatNumCsv(val: number | null): string {

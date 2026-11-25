@@ -1,11 +1,18 @@
 import type {
   AirQualityInfo,
   ClimateAnomaly,
+  ClimatologicalAlertFlag,
+  ClimatologicalAlertRecord,
+  ClimatologicalBaselineStat,
+  ClimatologicalMonitorResult,
+  ColumnMissingStat,
   DailySummaryRow,
   FilterSpec,
   KpiResult,
   LivePointWeather,
   MonthlySummaryRow,
+  PrecipitationHistogramBin,
+  PrecipitationHistogramResult,
   QualityReport,
   StormRisk,
   UvInfo,
@@ -211,19 +218,42 @@ function quantile(sorted: number[], q: number): number {
   return sorted[base];
 }
 
+export const MAX_HOURLY_RAIN_MM = 150;
+
 function iqrOutlierCount(values: Array<number | null>): number {
   const clean = values.filter((v): v is number => v !== null && !Number.isNaN(v)).sort((a, b) => a - b);
-  if (clean.length === 0) return 0;
+  if (clean.length < 4) return 0;
   const q1 = quantile(clean, 0.25);
   const q3 = quantile(clean, 0.75);
   const iqr = q3 - q1;
-  if (iqr === 0) {
-    const med = quantile(clean, 0.5);
-    return clean.filter((v) => v !== med).length;
-  }
+  if (iqr === 0) return 0;
   const low = q1 - 1.5 * iqr;
   const high = q3 + 1.5 * iqr;
   return clean.filter((v) => v < low || v > high).length;
+}
+
+/**
+ * Hourly precipitation is heavily zero-inflated (most hours are 0 mm), which causes
+ * standard IQR across all hours to collapse to 0 and misclassify every rainy hour as an outlier.
+ * Instead, evaluate the upper Tukey fence strictly across rainy hours (v > 0), falling back
+ * to the physical plausibility ceiling when rainy samples are too sparse.
+ */
+function rainyHourOutlierCount(values: Array<number | null>): number {
+  const rainy = values
+    .filter((v): v is number => v !== null && !Number.isNaN(v) && v > 0)
+    .sort((a, b) => a - b);
+  if (rainy.length === 0) return 0;
+  if (rainy.length < 4) {
+    return rainy.filter((v) => v > MAX_HOURLY_RAIN_MM).length;
+  }
+  const q1 = quantile(rainy, 0.25);
+  const q3 = quantile(rainy, 0.75);
+  const iqr = q3 - q1;
+  if (iqr === 0) {
+    return rainy.filter((v) => v > MAX_HOURLY_RAIN_MM).length;
+  }
+  const high = q3 + 1.5 * iqr;
+  return rainy.filter((v) => v > high).length;
 }
 
 export function qualityReport(records: WeatherRecord[]): QualityReport {
@@ -232,6 +262,7 @@ export function qualityReport(records: WeatherRecord[]): QualityReport {
   let duplicadas = 0;
   let timestampsDuplicados = 0;
   let chuvaNegativa = 0;
+  let chuvaExtremaFisica = 0;
   let tempInconsistente = 0;
   let nullRain = 0;
   let nullMax = 0;
@@ -257,7 +288,10 @@ export function qualityReport(records: WeatherRecord[]): QualityReport {
     if (r.timestamp > maxTs) maxTs = r.timestamp;
 
     if (r.precipitacao_mm === null) nullRain++;
-    else if (r.precipitacao_mm < 0) chuvaNegativa++;
+    else {
+      if (r.precipitacao_mm < 0) chuvaNegativa++;
+      if (r.precipitacao_mm > MAX_HOURLY_RAIN_MM) chuvaExtremaFisica++;
+    }
 
     if (r.temp_max_c === null) nullMax++;
     if (r.temp_min_c === null) nullMin++;
@@ -296,12 +330,455 @@ export function qualityReport(records: WeatherRecord[]): QualityReport {
       temp_min_c: nullMin,
     },
     outliers_iqr: {
-      precipitacao_mm: iqrOutlierCount(rainVals),
+      precipitacao_mm: rainyHourOutlierCount(rainVals),
       temp_max_c: iqrOutlierCount(maxVals),
       temp_min_c: iqrOutlierCount(minVals),
     },
     chuva_negativa: chuvaNegativa,
+    chuva_extrema_fisica: chuvaExtremaFisica,
     temp_inconsistente: tempInconsistente,
+  };
+}
+
+export const MISSING_ALERT_THRESHOLD_PCT = 10;
+
+const CORE_DATASET_COLUMNS: Array<{
+  key: keyof WeatherRecord;
+  label: string;
+  isMissing: (r: WeatherRecord) => boolean;
+}> = [
+  {
+    key: 'precipitacao_mm',
+    label: 'Precipitação (mm)',
+    isMissing: (r) => r.precipitacao_mm === null || r.precipitacao_mm === undefined || Number.isNaN(r.precipitacao_mm),
+  },
+  {
+    key: 'temp_max_c',
+    label: 'Temperatura Máxima (°C)',
+    isMissing: (r) => r.temp_max_c === null || r.temp_max_c === undefined || Number.isNaN(r.temp_max_c),
+  },
+  {
+    key: 'temp_min_c',
+    label: 'Temperatura Mínima (°C)',
+    isMissing: (r) => r.temp_min_c === null || r.temp_min_c === undefined || Number.isNaN(r.temp_min_c),
+  },
+  {
+    key: 'data',
+    label: 'Data',
+    isMissing: (r) => !r.data || r.data.trim() === '',
+  },
+  {
+    key: 'hora',
+    label: 'Hora',
+    isMissing: (r) => r.hora === null || r.hora === undefined || !Number.isFinite(r.hora),
+  },
+  {
+    key: 'data_hora',
+    label: 'Data e Hora (Timestamp)',
+    isMissing: (r) => !r.data_hora || r.data_hora.trim() === '' || !Number.isFinite(r.timestamp),
+  },
+];
+
+export function calculateColumnMissingStats(
+  records: WeatherRecord[],
+  extraColumns: ColumnMissingStat[] = [],
+  thresholdPct = MISSING_ALERT_THRESHOLD_PCT
+): ColumnMissingStat[] {
+  const total = records.length;
+
+  const coreStats: ColumnMissingStat[] = CORE_DATASET_COLUMNS.map((col) => {
+    let missingCount = 0;
+    for (let i = 0; i < total; i++) {
+      if (col.isMissing(records[i])) missingCount++;
+    }
+    const missingPct = total > 0 ? (missingCount / total) * 100 : 0;
+    return {
+      key: String(col.key),
+      label: col.label,
+      total,
+      missingCount,
+      validCount: total - missingCount,
+      missingPct,
+      exceedsThreshold: missingPct > thresholdPct,
+      source: 'core',
+    };
+  });
+
+  const normalizedExtras: ColumnMissingStat[] = extraColumns.map((col) => ({
+    ...col,
+    exceedsThreshold: col.missingPct > thresholdPct,
+  }));
+
+  const combined = [...coreStats, ...normalizedExtras];
+  return combined
+    .map((item, idx) => ({ item, idx }))
+    .sort((a, b) => {
+      if (b.item.missingPct !== a.item.missingPct) {
+        return b.item.missingPct - a.item.missingPct;
+      }
+      return a.idx - b.idx;
+    })
+    .map(({ item }) => item);
+}
+
+function formatBinEdge(value: number): string {
+  return value.toFixed(1).replace('.', ',');
+}
+
+/**
+ * Builds an hourly precipitation histogram strictly over rainy hours (v > 0),
+ * aligning bin edges exactly to the Tukey upper fence (Q3 + 1.5 * IQR) so
+ * normal rainfall intervals and extreme tail events never mix inside the same bar.
+ */
+export function precipitationHistogram(records: WeatherRecord[]): PrecipitationHistogramResult {
+  let totalValid = 0;
+  let zeroCount = 0;
+  const rainy: number[] = [];
+
+  for (let i = 0; i < records.length; i++) {
+    const v = records[i].precipitacao_mm;
+    if (v === null || Number.isNaN(v) || v < 0) continue;
+    totalValid++;
+    if (v === 0) zeroCount++;
+    else rainy.push(v);
+  }
+
+  if (rainy.length === 0) {
+    return {
+      totalValid,
+      zeroCount,
+      rainyCount: 0,
+      q1: null,
+      median: null,
+      q3: null,
+      iqr: null,
+      upperFence: null,
+      p95: null,
+      maxVal: null,
+      extremeCount: 0,
+      extremePct: 0,
+      firstExtremeBinLabel: null,
+      bins: [],
+    };
+  }
+
+  rainy.sort((a, b) => a - b);
+  const rainyCount = rainy.length;
+  const minVal = rainy[0];
+  const maxVal = rainy[rainyCount - 1];
+  const q1 = quantile(rainy, 0.25);
+  const median = quantile(rainy, 0.5);
+  const q3 = quantile(rainy, 0.75);
+  const iqr = q3 - q1;
+  const p95 = quantile(rainy, 0.95);
+
+  const upperFence =
+    rainyCount >= 4 && iqr > 0 ? q3 + 1.5 * iqr : MAX_HOURLY_RAIN_MM;
+
+  const normalValues = rainy.filter((v) => v <= upperFence);
+  const extremeValues = rainy.filter((v) => v > upperFence);
+  const extremeCount = extremeValues.length;
+  const extremePct = (extremeCount / rainyCount) * 100;
+
+  const bins: PrecipitationHistogramBin[] = [];
+
+  const pushRangeBins = (
+    values: number[],
+    start: number,
+    end: number,
+    numBins: number,
+    isExtreme: boolean,
+    prefix: string
+  ) => {
+    if (values.length === 0) return;
+    if (end <= start || numBins <= 1) {
+      const label =
+        end <= start
+          ? `${formatBinEdge(start)}`
+          : `${formatBinEdge(start)}–${formatBinEdge(end)}`;
+      bins.push({
+        id: `${prefix}_0`,
+        rangeLabel: label,
+        min: start,
+        max: end,
+        count: values.length,
+        densityPct: (values.length / rainyCount) * 100,
+        isExtreme,
+      });
+      return;
+    }
+
+    const width = (end - start) / numBins;
+    const counts = new Array<number>(numBins).fill(0);
+    for (let i = 0; i < values.length; i++) {
+      const rawIdx = Math.floor((values[i] - start) / width);
+      const clamped = Math.min(numBins - 1, Math.max(0, rawIdx));
+      counts[clamped]++;
+    }
+
+    for (let b = 0; b < numBins; b++) {
+      const bMin = start + b * width;
+      const bMax = b === numBins - 1 ? end : start + (b + 1) * width;
+      bins.push({
+        id: `${prefix}_${b}`,
+        rangeLabel: `${formatBinEdge(bMin)}–${formatBinEdge(bMax)}`,
+        min: bMin,
+        max: bMax,
+        count: counts[b],
+        densityPct: (counts[b] / rainyCount) * 100,
+        isExtreme,
+      });
+    }
+  };
+
+  if (extremeCount > 0) {
+    const normalEnd = upperFence;
+    const normalStart = Math.min(0, minVal);
+    const normalBinCount = normalValues.length >= 24 ? 6 : Math.max(2, Math.min(5, normalValues.length));
+    pushRangeBins(normalValues, normalStart, normalEnd, normalBinCount, false, 'norm');
+
+    const extremeBinCount = extremeCount >= 20 ? 6 : Math.max(2, Math.min(5, extremeCount));
+    pushRangeBins(extremeValues, upperFence, maxVal, extremeBinCount, true, 'ext');
+  } else {
+    const singleRangeStart = Math.min(0, minVal);
+    const binCount = rainyCount >= 24 ? 8 : Math.max(2, Math.min(6, rainyCount));
+    pushRangeBins(normalValues, singleRangeStart, maxVal, binCount, false, 'norm');
+  }
+
+  const firstExtremeBin = bins.find((b) => b.isExtreme);
+
+  return {
+    totalValid,
+    zeroCount,
+    rainyCount,
+    q1,
+    median,
+    q3,
+    iqr,
+    upperFence,
+    p95,
+    maxVal,
+    extremeCount,
+    extremePct,
+    firstExtremeBinLabel: firstExtremeBin ? firstExtremeBin.rangeLabel : null,
+    bins,
+  };
+}
+
+function computeMeanStd(values: number[]): { mean: number | null; std: number | null } {
+  if (values.length < 2) {
+    return { mean: values.length === 1 ? values[0] : null, std: null };
+  }
+  let sum = 0;
+  for (let i = 0; i < values.length; i++) sum += values[i];
+  const mean = sum / values.length;
+  let sqDiffSum = 0;
+  for (let i = 0; i < values.length; i++) {
+    const d = values[i] - mean;
+    sqDiffSum += d * d;
+  }
+  const std = Math.sqrt(sqDiffSum / values.length);
+  return { mean, std };
+}
+
+/**
+ * Monitors meteorological records against historical climatological baselines (mean +/- k*sigma).
+ * Baselines are computed from fullRecords (using rainy hours > 0 for precipitation to avoid
+ * zero-inflation distortion) and evaluated across targetRecords.
+ */
+export function climatologicalThresholdMonitor(
+  fullRecords: WeatherRecord[],
+  targetRecords: WeatherRecord[],
+  sigmaThreshold = 2.0
+): ClimatologicalMonitorResult {
+  const histRain: number[] = [];
+  const histMax: number[] = [];
+  const histMin: number[] = [];
+
+  for (let i = 0; i < fullRecords.length; i++) {
+    const r = fullRecords[i];
+    if (r.precipitacao_mm !== null && !Number.isNaN(r.precipitacao_mm) && r.precipitacao_mm > 0) {
+      histRain.push(r.precipitacao_mm);
+    }
+    if (r.temp_max_c !== null && !Number.isNaN(r.temp_max_c)) {
+      histMax.push(r.temp_max_c);
+    }
+    if (r.temp_min_c !== null && !Number.isNaN(r.temp_min_c)) {
+      histMin.push(r.temp_min_c);
+    }
+  }
+
+  const rainStats = computeMeanStd(histRain);
+  const maxStats = computeMeanStd(histMax);
+  const minStats = computeMeanStd(histMin);
+
+  const rainBase: ClimatologicalBaselineStat = {
+    mean: rainStats.mean,
+    std: rainStats.std,
+    low: null,
+    high:
+      rainStats.mean !== null && rainStats.std !== null && rainStats.std > 0
+        ? rainStats.mean + sigmaThreshold * rainStats.std
+        : null,
+    sampleCount: histRain.length,
+  };
+
+  const maxBase: ClimatologicalBaselineStat = {
+    mean: maxStats.mean,
+    std: maxStats.std,
+    low:
+      maxStats.mean !== null && maxStats.std !== null && maxStats.std > 0
+        ? maxStats.mean - sigmaThreshold * maxStats.std
+        : null,
+    high:
+      maxStats.mean !== null && maxStats.std !== null && maxStats.std > 0
+        ? maxStats.mean + sigmaThreshold * maxStats.std
+        : null,
+    sampleCount: histMax.length,
+  };
+
+  const minBase: ClimatologicalBaselineStat = {
+    mean: minStats.mean,
+    std: minStats.std,
+    low:
+      minStats.mean !== null && minStats.std !== null && minStats.std > 0
+        ? minStats.mean - sigmaThreshold * minStats.std
+        : null,
+    high:
+      minStats.mean !== null && minStats.std !== null && minStats.std > 0
+        ? minStats.mean + sigmaThreshold * minStats.std
+        : null,
+    sampleCount: histMin.length,
+  };
+
+  const criticalCutoff = sigmaThreshold + 1.0;
+  const alerts: ClimatologicalAlertRecord[] = [];
+  let rainCount = 0;
+  let tempMaxCount = 0;
+  let tempMinCount = 0;
+  let criticalCount = 0;
+
+  for (let i = 0; i < targetRecords.length; i++) {
+    const r = targetRecords[i];
+    const flags: ClimatologicalAlertFlag[] = [];
+
+    if (
+      r.precipitacao_mm !== null &&
+      !Number.isNaN(r.precipitacao_mm) &&
+      r.precipitacao_mm > 0 &&
+      rainBase.mean !== null &&
+      rainBase.std !== null &&
+      rainBase.std > 0 &&
+      rainBase.high !== null &&
+      r.precipitacao_mm > rainBase.high
+    ) {
+      const z = (r.precipitacao_mm - rainBase.mean) / rainBase.std;
+      flags.push({
+        variable: 'rain',
+        label: 'Chuva extrema',
+        zScore: z,
+        severity: Math.abs(z) >= criticalCutoff ? 'critico' : 'alerta',
+      });
+      rainCount++;
+    }
+
+    if (
+      r.temp_max_c !== null &&
+      !Number.isNaN(r.temp_max_c) &&
+      maxBase.mean !== null &&
+      maxBase.std !== null &&
+      maxBase.std > 0 &&
+      maxBase.low !== null &&
+      maxBase.high !== null
+    ) {
+      if (r.temp_max_c > maxBase.high) {
+        const z = (r.temp_max_c - maxBase.mean) / maxBase.std;
+        flags.push({
+          variable: 'tempMax',
+          label: 'Calor extremo',
+          zScore: z,
+          severity: Math.abs(z) >= criticalCutoff ? 'critico' : 'alerta',
+        });
+        tempMaxCount++;
+      } else if (r.temp_max_c < maxBase.low) {
+        const z = (r.temp_max_c - maxBase.mean) / maxBase.std;
+        flags.push({
+          variable: 'tempMax',
+          label: 'Máx. muito baixa',
+          zScore: z,
+          severity: Math.abs(z) >= criticalCutoff ? 'critico' : 'alerta',
+        });
+        tempMaxCount++;
+      }
+    }
+
+    if (
+      r.temp_min_c !== null &&
+      !Number.isNaN(r.temp_min_c) &&
+      minBase.mean !== null &&
+      minBase.std !== null &&
+      minBase.std > 0 &&
+      minBase.low !== null &&
+      minBase.high !== null
+    ) {
+      if (r.temp_min_c < minBase.low) {
+        const z = (r.temp_min_c - minBase.mean) / minBase.std;
+        flags.push({
+          variable: 'tempMin',
+          label: 'Frio atípico',
+          zScore: z,
+          severity: Math.abs(z) >= criticalCutoff ? 'critico' : 'alerta',
+        });
+        tempMinCount++;
+      } else if (r.temp_min_c > minBase.high) {
+        const z = (r.temp_min_c - minBase.mean) / minBase.std;
+        flags.push({
+          variable: 'tempMin',
+          label: 'Mín. muito alta',
+          zScore: z,
+          severity: Math.abs(z) >= criticalCutoff ? 'critico' : 'alerta',
+        });
+        tempMinCount++;
+      }
+    }
+
+    if (flags.length > 0) {
+      let peakFlag = flags[0];
+      for (let f = 1; f < flags.length; f++) {
+        if (Math.abs(flags[f].zScore) > Math.abs(peakFlag.zScore)) {
+          peakFlag = flags[f];
+        }
+      }
+      const severity: 'alerta' | 'critico' = flags.some((f) => f.severity === 'critico')
+        ? 'critico'
+        : 'alerta';
+      if (severity === 'critico') criticalCount++;
+      alerts.push({
+        record: r,
+        flags,
+        maxAbsZ: Math.abs(peakFlag.zScore),
+        signedPeakZ: peakFlag.zScore,
+        severity,
+      });
+    }
+  }
+
+  return {
+    sigmaThreshold,
+    totalEvaluated: targetRecords.length,
+    alertCount: alerts.length,
+    criticalCount,
+    countsByVar: {
+      rain: rainCount,
+      tempMax: tempMaxCount,
+      tempMin: tempMinCount,
+    },
+    baselines: {
+      rain: rainBase,
+      tempMax: maxBase,
+      tempMin: minBase,
+    },
+    alerts,
   };
 }
 

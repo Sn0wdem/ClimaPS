@@ -12,10 +12,22 @@ export interface WeatherRecord {
   dia: string; // YYYY-MM-DD
 }
 
+export interface ColumnMissingStat {
+  key: string;
+  label: string;
+  total: number;
+  missingCount: number;
+  validCount: number;
+  missingPct: number;
+  exceedsThreshold: boolean;
+  source: 'core' | 'extra';
+}
+
 export interface StationDataset {
   metadata: Record<string, string>;
   data: WeatherRecord[];
   sourceName: string;
+  extraColumnMissing?: ColumnMissingStat[];
 }
 
 export interface SavedFileEntry {
@@ -230,5 +242,74 @@ export interface QualityReport {
     temp_min_c: number;
   };
   chuva_negativa: number;
+  chuva_extrema_fisica: number;
   temp_inconsistente: number;
+}
+
+export interface PrecipitationHistogramBin {
+  id: string;
+  rangeLabel: string;
+  min: number;
+  max: number;
+  count: number;
+  densityPct: number;
+  isExtreme: boolean;
+}
+
+export interface PrecipitationHistogramResult {
+  totalValid: number;
+  zeroCount: number;
+  rainyCount: number;
+  q1: number | null;
+  median: number | null;
+  q3: number | null;
+  iqr: number | null;
+  upperFence: number | null;
+  p95: number | null;
+  maxVal: number | null;
+  extremeCount: number;
+  extremePct: number;
+  firstExtremeBinLabel: string | null;
+  bins: PrecipitationHistogramBin[];
+}
+
+export interface ClimatologicalBaselineStat {
+  mean: number | null;
+  std: number | null;
+  low: number | null;
+  high: number | null;
+  sampleCount: number;
+}
+
+export interface ClimatologicalAlertFlag {
+  variable: 'rain' | 'tempMax' | 'tempMin';
+  label: string;
+  zScore: number;
+  severity: 'alerta' | 'critico';
+}
+
+export interface ClimatologicalAlertRecord {
+  record: WeatherRecord;
+  flags: ClimatologicalAlertFlag[];
+  maxAbsZ: number;
+  signedPeakZ: number;
+  severity: 'alerta' | 'critico';
+}
+
+export interface ClimatologicalMonitorResult {
+  sigmaThreshold: number;
+  totalEvaluated: number;
+  alertCount: number;
+  criticalCount: number;
+  countsByVar: {
+    rain: number;
+    tempMax: number;
+    tempMin: number;
+  };
+  baselines: {
+    rain: ClimatologicalBaselineStat;
+    tempMax: ClimatologicalBaselineStat;
+    tempMin: ClimatologicalBaselineStat;
+  };
+  alerts: ClimatologicalAlertRecord[];
 }
