@@ -10,6 +10,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/TAILWIND_CSS-4-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=FFFFFF&labelColor=0F172A)
 ![Recharts](https://img.shields.io/badge/RECHARTS-2.15-10B981?style=for-the-badge&labelColor=0F172A)
 ![jsPDF](https://img.shields.io/badge/JSPDF-RELATORIO_PDF-DC2626?style=for-the-badge&labelColor=0F172A)
+![Docker](https://img.shields.io/badge/DOCKER-READY-2563EB?style=for-the-badge&logo=docker&logoColor=FFFFFF&labelColor=0F172A)
 ![Open-Meteo](https://img.shields.io/badge/OPEN--METEO-API_LIVRE-F59E0B?style=for-the-badge&logo=airplayvideo&logoColor=FFFFFF&labelColor=0F172A)
 ![Theme](https://img.shields.io/badge/TEMA-DARK_%26_LIGHT-0284C7?style=for-the-badge&labelColor=0F172A)
 
@@ -93,26 +94,48 @@ Projetada com arquitetura de workspace analítico de alta precisão — inspirad
 
 ## 🚀 QUICK START
 
-### Pré-requisitos
-- **Node.js 20+** (recomendado Node.js 22 LTS)
-- **npm** (incluso no Node.js)
+### Opção 1: Rodar via Docker (Recomendado)
 
-### 1. Clonar o Repositório
+Com o **Docker** instalado, clone o repositório e suba o contêiner com um único comando:
 
 ```bash
 git clone https://github.com/Guilherme-Nepomuceno/CLIMAPS.git
 cd CLIMAPS
+docker compose up -d --build
 ```
 
-### 2. Instalar Dependências
+👉 Acesse no navegador: **http://localhost:3000**
+
+<details>
+<summary><b>🛠️ Comandos úteis do Docker</b></summary>
 
 ```bash
+# Acompanhar logs do contêiner
+docker compose logs -f
+
+# Parar e remover o contêiner
+docker compose down
+```
+
+</details>
+
+---
+
+### Opção 2: Rodar Localmente (Node.js)
+
+#### Pré-requisitos
+- **Node.js 20+** (recomendado Node.js 22 LTS)
+- **npm** (incluso no Node.js)
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/Guilherme-Nepomuceno/CLIMAPS.git
+cd CLIMAPS
+
+# 2. Instale as dependências
 npm install
-```
 
-### 3. Iniciar o Servidor de Desenvolvimento
-
-```bash
+# 3. Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
@@ -228,6 +251,10 @@ flowchart TD
 
 ```text
 .
+├── Dockerfile                        # Build multi-stage (Node 22 Alpine -> Nginx 1.27 Alpine na porta 3000)
+├── docker-compose.yml                # Orquestração rápida do contêiner CLIMAPS na porta 3000
+├── nginx.conf                        # Configuração Nginx para SPA, gzip e cache de assets
+├── .dockerignore                     # Exclusões do contexto de build Docker
 ├── index.html                        # Entrada HTML, fontes (Plus Jakarta Sans, DM Sans, JetBrains Mono) e metadados
 ├── package.json                      # Dependências e scripts Vite/TypeScript
 ├── vite.config.ts                    # Configuração do Vite + plugin Tailwind CSS v4
